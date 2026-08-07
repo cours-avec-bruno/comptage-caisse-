@@ -1,4 +1,4 @@
-import type { Journal } from '../api';
+import { api, type Journal } from '../api';
 import { dateCourte, formaterEuros } from '../format';
 
 interface Props {
@@ -27,12 +27,20 @@ export function EcranJournal({ journal }: Props) {
         </div>
 
         <div className="entete-ecran__actions">
-          <a className="bouton" href="/api/export/comptages.csv" download>
+          <button
+            type="button"
+            className="bouton"
+            onClick={() => void api.exporter('comptages')}
+          >
             Exporter le journal (CSV)
-          </a>
-          <a className="bouton" href="/api/export/mouvements.csv" download>
+          </button>
+          <button
+            type="button"
+            className="bouton"
+            onClick={() => void api.exporter('mouvements')}
+          >
             Exporter les mouvements (CSV)
-          </a>
+          </button>
         </div>
       </div>
 
