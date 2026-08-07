@@ -31,14 +31,32 @@ export async function sauvegarder(db, options) {
 
   fs.mkdirSync(dossier, { recursive: true });
 
-  const fichier = path.join(
-    dossier,
-    `${PREFIXE}${suffixeFichier(instant)}${EXTENSION}`,
-  );
+  const fichier = cheminLibre(dossier, suffixeFichier(instant));
 
   await db.backup(fichier);
 
   return { fichier, supprimes: appliquerRotation(dossier, maxFichiers) };
+}
+
+/**
+ * L'horodatage est à la seconde : deux journées validées coup sur coup
+ * tomberaient sur le même nom, et la seconde copie écraserait la première.
+ * On suffixe alors -2, -3… plutôt que de perdre une sauvegarde.
+ *
+ * @param {string} dossier
+ * @param {string} horodatage
+ * @returns {string}
+ */
+function cheminLibre(dossier, horodatage) {
+  const candidat = path.join(dossier, `${PREFIXE}${horodatage}${EXTENSION}`);
+  if (!fs.existsSync(candidat)) return candidat;
+
+  for (let suffixe = 2; suffixe < 100; suffixe += 1) {
+    const autre = path.join(dossier, `${PREFIXE}${horodatage}-${suffixe}${EXTENSION}`);
+    if (!fs.existsSync(autre)) return autre;
+  }
+
+  throw new Error(`Impossible de nommer une sauvegarde dans ${dossier}.`);
 }
 
 /**

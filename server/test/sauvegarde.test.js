@@ -71,6 +71,18 @@ describe('sauvegarde de la base', () => {
     ]);
   });
 
+  it('n’écrase pas une copie faite dans la même seconde', async () => {
+    const dossier = path.join(bacASable, 'sauvegardes');
+    const instant = new Date(2026, 7, 7, 18, 30, 0);
+
+    const premiere = await sauvegarder(db, { dossier, instant });
+    const seconde = await sauvegarder(db, { dossier, instant });
+
+    assert.notEqual(premiere.fichier, seconde.fichier);
+    assert.equal(path.basename(seconde.fichier), 'caisse_2026-08-07_18-30-00-2.db');
+    assert.equal(listerSauvegardes(dossier).length, 2);
+  });
+
   it('ne touche pas aux fichiers étrangers du dossier', () => {
     const dossier = path.join(bacASable, 'sauvegardes');
     fs.mkdirSync(dossier, { recursive: true });
