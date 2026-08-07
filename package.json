@@ -1,0 +1,23 @@
+{
+  "name": "caisse-piscine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Suivi de caisse et de coffre pour l'accueil de la piscine",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace client",
+    "start": "node server/src/index.js",
+    "demarrer": "npm run build && npm run start",
+    "dev:api": "node --watch server/src/index.js",
+    "dev:web": "npm run dev --workspace client",
+    "test": "node --test 'server/test/*.test.js'"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,19 @@
+node_modules/
+dist/
+
+# Base de données et sauvegardes : jamais dans git
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+donnees/
+sauvegardes/
+
+# Exports générés
+exports/
+
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
