@@ -1,0 +1,52 @@
+/*
+ * Variables de la maquette. Tout le reste du CSS s'y réfère : changer une
+ * couleur ici la change partout.
+ */
+
+:root {
+  /* Surfaces et traits */
+  --fond: #eef2f6;
+  --surface: #ffffff;
+  --surface-douce: #f6f9fb;
+  --surface-creuse: #e9eef3;
+  --trait: #dce4ec;
+  --trait-fort: #c2ceda;
+
+  /* Encre */
+  --encre: #16222e;
+  --encre-douce: #5f7386;
+  --encre-effacee: #93a3b1;
+
+  /* Accent : le bleu-vert d'un bassin */
+  --accent: #0b7285;
+  --accent-fort: #075a69;
+  --accent-clair: #e2f1f4;
+  --accent-trait: #9ccdd6;
+
+  /* États */
+  --succes: #157a5b;
+  --succes-clair: #e2f4ed;
+  --alerte: #ad2b1e;
+  --alerte-clair: #fdece9;
+  --alerte-trait: #f0b3aa;
+  --attention: #8a5a09;
+  --attention-clair: #fdf3e0;
+  --attention-trait: #edcf95;
+
+  /* Géométrie */
+  --rayon-s: 6px;
+  --rayon-m: 10px;
+  --rayon-l: 14px;
+  --ombre-s: 0 1px 2px rgb(20 40 60 / 0.07);
+  --ombre-m: 0 2px 8px rgb(20 40 60 / 0.08);
+  --ombre-l: 0 12px 34px rgb(20 40 60 / 0.16);
+
+  /* Typographie */
+  --police: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --police-chiffres: 'Segoe UI', system-ui, sans-serif;
+
+  /* Rythme */
+  --gouttiere: 20px;
+  --hauteur-barre: 58px;
+}

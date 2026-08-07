@@ -1,0 +1,188 @@
+/*
+ * Grille de saisie : une ligne par coupure, jeton en tête de ligne.
+ * Même composant pour le comptage du jour et pour la sortie du coffre.
+ */
+
+.grille {
+  overflow: hidden;
+}
+
+.grille__section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  background: var(--surface-douce);
+  border-bottom: 1px solid var(--trait);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+}
+
+.grille__section:not(:first-child) {
+  border-top: 1px solid var(--trait);
+}
+
+.grille__ligne {
+  display: grid;
+  grid-template-columns: 68px minmax(120px, 1fr) 96px minmax(104px, 124px);
+  align-items: center;
+  gap: 14px;
+  padding: 6px 18px;
+  border-bottom: 1px solid var(--trait);
+  transition: background 0.1s ease;
+}
+
+.grille__ligne:last-child {
+  border-bottom: 0;
+}
+
+.grille__ligne:hover {
+  background: var(--surface-douce);
+}
+
+/* La ligne en cours de saisie est teintée : on sait toujours où on en est
+   quand on descend la grille à la touche Entrée. */
+.grille__ligne--active {
+  background: var(--accent-clair);
+}
+
+.grille__ligne--active:hover {
+  background: var(--accent-clair);
+}
+
+.grille__jeton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+}
+
+.grille__nom {
+  font-weight: 600;
+}
+
+.grille__stock {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--encre-effacee);
+}
+
+.grille__stock--depasse {
+  color: var(--alerte);
+  font-weight: 600;
+}
+
+.grille__valeur {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.grille__valeur--nulle {
+  color: var(--encre-effacee);
+  font-weight: 500;
+}
+
+.grille__total {
+  display: grid;
+  grid-template-columns: 68px minmax(120px, 1fr) 96px minmax(104px, 124px);
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  background: var(--surface-douce);
+  border-top: 2px solid var(--trait-fort);
+  font-weight: 700;
+}
+
+.grille__total .grille__valeur {
+  font-size: 17px;
+}
+
+.grille__total-libelle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.grille__total-quantite {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.grille__aide {
+  padding: 9px 18px;
+  font-size: 12.5px;
+  color: var(--encre-effacee);
+  border-top: 1px solid var(--trait);
+  background: var(--surface-douce);
+}
+
+.grille__aide kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--trait-fort);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--police);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--encre-douce);
+}
+
+/* --- Jetons ----------------------------------------------------------- */
+
+.jeton {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--ombre-s);
+}
+
+.jeton--billet {
+  border-radius: 3px;
+  border: 1px solid;
+}
+
+/* La bande claire rappelle l'hologramme : elle donne au rectangle une
+   silhouette de billet plutôt que de simple pavé de couleur. */
+.jeton--billet::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  right: 3px;
+  width: 15%;
+  border-radius: 1px;
+  background: rgb(255 255 255 / 0.4);
+}
+
+.jeton--piece {
+  border-radius: 50%;
+  border: 1px solid;
+}
+
+/* La taille du texte est fixée en ligne, d'après le diamètre du jeton :
+   « 50 » ne tient pas sur une pièce de 1 centime à taille fixe. */
+.jeton__valeur {
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  color: rgb(0 0 0 / 0.58);
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.28);
+}
+
+.jeton--billet .jeton__valeur {
+  color: rgb(0 0 0 / 0.64);
+}

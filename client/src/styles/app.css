@@ -1,0 +1,495 @@
+/* --- Ossature -------------------------------------------------------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.barre {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: var(--hauteur-barre);
+  padding: 0 var(--gouttiere);
+  background: var(--surface);
+  border-bottom: 1px solid var(--trait);
+}
+
+.barre__marque {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.barre__marque span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--encre-effacee);
+  letter-spacing: 0;
+}
+
+.barre__nav {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.onglet {
+  padding: 7px 15px;
+  border: 0;
+  border-radius: var(--rayon-s);
+  background: transparent;
+  color: var(--encre-douce);
+  font-weight: 600;
+}
+
+.onglet:hover {
+  background: var(--surface-creuse);
+  color: var(--encre);
+}
+
+.onglet[aria-current='page'] {
+  background: var(--accent-clair);
+  color: var(--accent-fort);
+}
+
+.barre__droite {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.barre__date {
+  font-size: 13px;
+  color: var(--encre-douce);
+}
+
+.selecteur-agent {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 4px 4px 11px;
+  border: 1px solid var(--trait-fort);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--encre-douce);
+}
+
+.selecteur-agent select {
+  border: 0;
+  background: transparent;
+  padding: 3px 4px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-fort);
+}
+
+.selecteur-agent select:focus {
+  outline: none;
+}
+
+.selecteur-agent--vide {
+  border-color: var(--attention-trait);
+  background: var(--attention-clair);
+}
+
+.contenu {
+  flex: 1;
+  width: 100%;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: var(--gouttiere);
+}
+
+.entete-ecran {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.entete-ecran h1 {
+  font-size: 21px;
+  letter-spacing: -0.01em;
+}
+
+.entete-ecran p {
+  margin-top: 2px;
+  font-size: 13.5px;
+  color: var(--encre-douce);
+}
+
+.entete-ecran__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* --- Écran Comptage : grille + panneau ------------------------------- */
+
+.comptage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 336px;
+  gap: var(--gouttiere);
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .comptage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panneau {
+  position: sticky;
+  top: calc(var(--hauteur-barre) + var(--gouttiere));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.panneau__vedette {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--trait);
+}
+
+.panneau__vedette .etiquette {
+  margin-bottom: 2px;
+}
+
+.montant-vedette {
+  display: block;
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Le total bouge à chaque frappe : un flash bref confirme la prise en
+   compte sans attirer l'œil plus longtemps qu'il ne faut. */
+@keyframes battement {
+  0% { transform: scale(1); color: var(--encre); }
+  30% { transform: scale(1.028); color: var(--accent); }
+  100% { transform: scale(1); color: var(--encre); }
+}
+
+.montant-vedette--anime {
+  animation: battement 0.34s ease-out;
+  transform-origin: left center;
+}
+
+.ligne-calcul {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+}
+
+.ligne-calcul__libelle {
+  font-size: 14px;
+  color: var(--encre-douce);
+}
+
+.ligne-calcul__valeur {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.ligne-calcul--saisie .champ {
+  width: 118px;
+  padding: 6px 9px;
+}
+
+.ligne-calcul--negatif .ligne-calcul__valeur {
+  color: var(--alerte);
+}
+
+.ligne-calcul--totale {
+  padding-top: 12px;
+  border-top: 1px solid var(--trait);
+}
+
+.ligne-calcul--totale .ligne-calcul__libelle {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--encre);
+}
+
+.ligne-calcul--totale .ligne-calcul__valeur {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.panneau__pied {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.panneau__note {
+  font-size: 12.5px;
+  color: var(--encre-effacee);
+  text-align: center;
+}
+
+/* --- Écran Coffre ----------------------------------------------------- */
+
+.coffre-solde {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 34px 32px;
+}
+
+.coffre-solde__chiffre {
+  display: block;
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.coffre-solde__meta {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--encre-douce);
+}
+
+.coffre-solde__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.coffre-detail {
+  margin-top: var(--gouttiere);
+  overflow: hidden;
+}
+
+.coffre-vide {
+  padding: 26px 32px;
+  color: var(--encre-douce);
+  font-size: 14px;
+}
+
+/* --- Tableaux --------------------------------------------------------- */
+
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tableau th {
+  padding: 11px 16px;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  background: var(--surface-douce);
+  border-bottom: 1px solid var(--trait);
+}
+
+.tableau td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--trait);
+}
+
+.tableau tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableau tbody tr:hover td {
+  background: var(--surface-douce);
+}
+
+.tableau .col-nombre {
+  text-align: right;
+}
+
+.tableau tfoot td {
+  padding: 13px 16px;
+  font-weight: 700;
+  background: var(--surface-douce);
+  border-top: 2px solid var(--trait-fort);
+}
+
+/* Une coupure absente reste visible, en gris clair : savoir qu'il n'y a
+   plus de pièces de 20 centimes est une information utile. */
+.ligne-absente td {
+  color: var(--encre-effacee);
+}
+
+.ligne-absente .jeton {
+  opacity: 0.4;
+  filter: grayscale(0.55);
+}
+
+.tableau__vide {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--encre-douce);
+}
+
+.cellule-coupure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cellule-coupure__nom {
+  font-weight: 600;
+}
+
+.badge-agent {
+  display: inline-block;
+  min-width: 30px;
+  padding: 2px 7px;
+  border-radius: var(--rayon-s);
+  background: var(--surface-creuse);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: var(--encre-douce);
+}
+
+.montant-negatif {
+  color: var(--alerte);
+}
+
+/* --- Modale ----------------------------------------------------------- */
+
+.voile {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+  background: rgb(16 32 46 / 0.42);
+  animation: apparition 0.14s ease-out;
+}
+
+@keyframes apparition {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modale {
+  width: 100%;
+  max-width: 620px;
+  background: var(--surface);
+  border-radius: var(--rayon-l);
+  box-shadow: var(--ombre-l);
+  animation: montee 0.16s ease-out;
+}
+
+@keyframes montee {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modale__entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--trait);
+}
+
+.modale__entete h2 {
+  font-size: 17px;
+}
+
+.modale__entete p {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--encre-douce);
+}
+
+.modale__corps {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modale__pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--trait);
+  background: var(--surface-douce);
+  border-radius: 0 0 var(--rayon-l) var(--rayon-l);
+}
+
+.modale__total {
+  font-size: 15px;
+  color: var(--encre-douce);
+}
+
+.modale__total strong {
+  font-size: 20px;
+  color: var(--encre);
+  font-variant-numeric: tabular-nums;
+}
+
+.modale__actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* --- Divers ----------------------------------------------------------- */
+
+.pile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.chargement {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--encre-douce);
+}
+
+.liste-fichiers {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.liste-fichiers li {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--trait);
+}
+
+.liste-fichiers li:last-child {
+  border-bottom: 0;
+}
