@@ -2,14 +2,20 @@
 
 ## Git
 
-**Committer et pousser automatiquement, sans demander.** Dès qu'un morceau de
-travail tient debout (les tests passent, le build passe), faire le commit et le
-`git push -u origin <branche>` dans la foulée. Ne pas attendre qu'on le demande,
-ne pas laisser de travail non poussé en fin de réponse.
+**Committer, pousser, ouvrir la PR et la fusionner automatiquement, sans
+demander.** Dès qu'un morceau de travail tient debout (les tests passent, le
+build passe), enchaîner : commit, `git push -u origin <branche>`, ouverture de
+la pull request, puis fusion dans `main`. Ne rien laisser en attente en fin de
+réponse.
 
 - Commits atomiques, messages en français.
-- Ne jamais pousser sur la branche par défaut sans autorisation explicite.
-- Avant de pousser : `npm test` et `npm run build` doivent passer.
+- **Avant de pousser, `npm test` et `npm run build` doivent passer.** C'est la
+  seule barrière avant `main` : si elle saute, on ne fusionne pas, on répare.
+- Après fusion, vérifier que GitHub Pages a bien republié — la démo sert
+  `main/docs`.
+- Autorisation debout pour fusionner dans la branche par défaut. Elle ne couvre
+  pas les actions destructrices : réécriture d'historique, `push --force`,
+  suppression de branche ou de dépôt restent à demander.
 
 ## Règles de code, non négociables
 
