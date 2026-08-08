@@ -84,7 +84,10 @@ function TableauCaisse({
 export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
   // Un seul chiffre par défaut : le détail ne s'affiche jamais d'office.
   const [detailVisible, setDetailVisible] = useState(false);
-  const [sortieOuverte, setSortieOuverte] = useState(false);
+  // On retient d'où la feuille a été ouverte : elle en émerge et y retourne.
+  const [origineSortie, setOrigineSortie] = useState<{ x: number; y: number } | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
 
   const coffreVide = coffre.solde_centimes === 0;
@@ -121,10 +124,9 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
             <span className="pastille-caisse pastille-caisse--rouge">
               Caisse rouge <strong>{formaterEuros(rouge.total_centimes)}</strong>
             </span>
-            {rouge.cheques.nombre > 0 && (
+            {rouge.cheques.centimes > 0 && (
               <span className="coffre-solde__cheques">
-                dont {rouge.cheques.nombre} chèque{rouge.cheques.nombre > 1 ? 's' : ''}{' '}
-                pour {formaterEuros(rouge.cheques.centimes)}
+                dont {formaterEuros(rouge.cheques.centimes)} de chèques
               </span>
             )}
           </div>
@@ -156,9 +158,13 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
                   ? 'Sélectionnez vos initiales en haut à droite'
                   : undefined
             }
-            onClick={() => {
+            onClick={(evenement) => {
               setMessage(null);
-              setSortieOuverte(true);
+              const rect = evenement.currentTarget.getBoundingClientRect();
+              setOrigineSortie({
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+              });
             }}
           >
             Sortie du coffre
@@ -195,11 +201,9 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
               </span>
             </header>
 
-            {rouge.cheques.nombre > 0 && (
+            {rouge.cheques.centimes > 0 && (
               <div className="caisse__cheques">
-                <span>
-                  {rouge.cheques.nombre} chèque{rouge.cheques.nombre > 1 ? 's' : ''}
-                </span>
+                <span>Chèques</span>
                 <strong>{formaterEuros(rouge.cheques.centimes)}</strong>
               </div>
             )}
@@ -207,10 +211,10 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
             <TableauCaisse
               lignes={rouge.lignes}
               libelleTotal={
-                rouge.cheques.nombre > 0 ? 'Total des billets' : 'Total'
+                rouge.cheques.centimes > 0 ? 'Total des billets' : 'Total'
               }
               vide={
-                rouge.cheques.nombre > 0
+                rouge.cheques.centimes > 0
                   ? 'Aucun billet en caisse rouge, seulement des chèques.'
                   : 'Caisse rouge vide.'
               }
@@ -219,15 +223,16 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
         </div>
       )}
 
-      {sortieOuverte && (
+      {origineSortie && (
         <ModaleSortie
           date={date}
           agent={agent}
           inventaire={coffre.inventaire}
           cheques={coffre.cheques}
-          onFermer={() => setSortieOuverte(false)}
+          origine={origineSortie}
+          onFermer={() => setOrigineSortie(null)}
           onEnregistree={(montant) => {
-            setSortieOuverte(false);
+            setOrigineSortie(null);
             setMessage(`Sortie enregistrée : ${formaterEuros(montant)} retirés du coffre.`);
             onChangement();
           }}

@@ -80,13 +80,8 @@ export function EcranJournal({ journal }: Props) {
                   </td>
                   <td className="col-nombre">{formaterEuros(ligne.cb_centimes)}</td>
                   <td className="col-nombre">
-                    {ligne.cheques_nombre > 0 ? (
-                      <>
-                        {formaterEuros(ligne.cheques_centimes)}
-                        <span className="cellule-appoint">
-                          {ligne.cheques_nombre} chq
-                        </span>
-                      </>
+                    {ligne.cheques_centimes > 0 ? (
+                      formaterEuros(ligne.cheques_centimes)
                     ) : (
                       <span className="montant-nul">—</span>
                     )}
@@ -109,9 +104,6 @@ export function EcranJournal({ journal }: Props) {
                 <td className="col-nombre">{formaterEuros(cumul.cb_centimes)}</td>
                 <td className="col-nombre">
                   {formaterEuros(cumul.cheques_centimes)}
-                  {cumul.cheques_nombre > 0 && (
-                    <span className="cellule-appoint">{cumul.cheques_nombre} chq</span>
-                  )}
                 </td>
                 <td className="col-nombre">{montant(cumul.recette_centimes)}</td>
               </tr>

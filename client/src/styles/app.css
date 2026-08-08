@@ -1,79 +1,137 @@
-/* --- Ossature -------------------------------------------------------- */
+/* --- Ossature ---------------------------------------------------------- */
 
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  transform-origin: center 35%;
+  /* Courbe miroir de celle du retour : une transition réversible doit
+     revenir par le chemin qu'elle a pris. */
+  transition:
+    transform 400ms cubic-bezier(0.32, 0.72, 0, 1),
+    filter 400ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Version publiée en démonstration. Le bandeau est volontairement voyant et
-   non masquable : personne ne doit croire compter une vraie caisse. */
+/* Le fond recule pendant qu'une feuille est ouverte : on ne le cache pas,
+   on l'éloigne — le contexte reste lisible, la tâche prend le premier plan. */
+body.feuille-ouverte .app {
+  transform: scale(0.982);
+  filter: brightness(0.96) saturate(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.feuille-ouverte .app {
+    transform: none;
+  }
+}
+
+/* Bandeau de la version publiée en démonstration : voyant et non masquable,
+   personne ne doit croire compter une vraie caisse. */
 .bandeau-demo {
+  position: relative;
+  z-index: 30;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: center;
-  gap: 4px 10px;
-  padding: 9px 18px;
+  gap: var(--espace-1) var(--espace-3);
+  padding: 0.5rem var(--espace-4);
   background: var(--attention-clair);
   border-bottom: 1px solid var(--attention-trait);
   color: var(--attention);
-  font-size: 13.5px;
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
   text-align: center;
 }
 
 .bandeau-demo strong {
-  letter-spacing: 0.06em;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-etiquette);
   text-transform: uppercase;
-  font-size: 12px;
 }
 
+/* --- Chrome translucide -------------------------------------------------
+   La barre est une couche flottante : le contenu passe dessous au lieu de
+   s'arrêter à une bande opaque. La matière est plus dense que les surfaces
+   du contenu — une matière lourde sépare les régions de structure. */
 .barre {
   position: sticky;
   top: 0;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: var(--espace-4);
   height: var(--hauteur-barre);
   padding: 0 var(--gouttiere);
-  background: var(--surface);
-  border-bottom: 1px solid var(--trait);
+  background: var(--matiere-chrome);
+  backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
+  /* Arête claire en haut : la lumière qui accroche la matière. */
+  box-shadow: inset 0 1px 0 var(--matiere-chrome-bord);
+}
+
+/* Bord de défilement plutôt qu'un filet de 1 px : un dégradé estompe la
+   rencontre entre le contenu et le chrome flottant, seulement là où ils se
+   superposent vraiment. */
+.barre::after {
+  content: '';
+  position: absolute;
+  inset: 100% 0 auto 0;
+  height: 1.5rem;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--fond) 70%, transparent),
+    transparent
+  );
+  pointer-events: none;
 }
 
 .barre__marque {
   display: flex;
   align-items: baseline;
-  gap: 9px;
+  gap: var(--espace-2);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: var(--taille-section);
+  letter-spacing: var(--tracking-section);
 }
 
 .barre__marque span {
-  font-size: 12px;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-etiquette);
   font-weight: 500;
   color: var(--encre-effacee);
-  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .barre__nav {
   display: flex;
-  gap: 2px;
-  margin-left: 8px;
+  gap: var(--espace-1);
+  margin-left: var(--espace-2);
 }
 
+/* Des noms qui disent leur contenu : « Comptage », « Coffre », « Journal »
+   plutôt qu'un « Accueil » parapluie. */
 .onglet {
-  padding: 7px 15px;
+  position: relative;
+  padding: 0.4375rem 0.875rem;
   border: 0;
   border-radius: var(--rayon-s);
   background: transparent;
   color: var(--encre-douce);
   font-weight: 600;
+  transition:
+    background 120ms ease-out,
+    color 120ms ease-out,
+    transform 100ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .onglet:hover {
   background: var(--surface-creuse);
   color: var(--encre);
+}
+
+.onglet:active {
+  transform: scale(0.97);
 }
 
 .onglet[aria-current='page'] {
@@ -84,49 +142,54 @@
 .barre__droite {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--espace-3);
   margin-left: auto;
 }
 
 .barre__date {
-  font-size: 13px;
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
   color: var(--encre-douce);
 }
 
 .selecteur-agent {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 4px 4px 11px;
+  gap: var(--espace-2);
+  padding: 0.25rem 0.25rem 0.25rem 0.6875rem;
   border: 1px solid var(--trait-fort);
   border-radius: 999px;
   background: var(--surface);
-  font-size: 13px;
+  font-size: var(--taille-appoint);
   color: var(--encre-douce);
+  transition: border-color 120ms ease-out, background 120ms ease-out;
 }
 
 .selecteur-agent select {
   border: 0;
   background: transparent;
-  padding: 3px 4px;
+  padding: 0.1875rem 0.25rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--accent-fort);
+  cursor: pointer;
 }
 
 .selecteur-agent select:focus {
   outline: none;
 }
 
+/* Signaler ce qui manque, au moment où ça manque. */
 .selecteur-agent--vide {
   border-color: var(--attention-trait);
   background: var(--attention-clair);
+  color: var(--attention);
 }
 
 .contenu {
   flex: 1;
   width: 100%;
-  max-width: 1220px;
+  max-width: var(--largeur-contenu);
   margin: 0 auto;
   padding: var(--gouttiere);
 }
@@ -135,36 +198,32 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.entete-ecran h1 {
-  font-size: 21px;
-  letter-spacing: -0.01em;
+  gap: var(--espace-4);
+  margin-bottom: var(--espace-4);
 }
 
 .entete-ecran p {
-  margin-top: 2px;
-  font-size: 13.5px;
+  margin-top: var(--espace-1);
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
   color: var(--encre-douce);
 }
 
 .entete-ecran__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--espace-2);
 }
 
-/* --- Écran Comptage : grille + panneau ------------------------------- */
+/* --- Écran Comptage ----------------------------------------------------- */
 
 .comptage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 336px;
+  grid-template-columns: minmax(0, 1fr) 21rem;
   gap: var(--gouttiere);
   align-items: start;
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 68rem) {
   .comptage {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -175,51 +234,40 @@
   top: calc(var(--hauteur-barre) + var(--gouttiere));
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
+  gap: var(--espace-3);
+  padding: var(--espace-5);
 }
 
 .panneau__vedette {
-  padding-bottom: 14px;
+  padding-bottom: var(--espace-3);
   border-bottom: 1px solid var(--trait);
 }
 
 .panneau__vedette .etiquette {
-  margin-bottom: 2px;
+  margin-bottom: var(--espace-1);
 }
 
+/* Grand texte : leading serré, tracking négatif. */
 .montant-vedette {
   display: block;
-  font-size: 38px;
+  font-size: var(--taille-vedette);
+  line-height: var(--leading-vedette);
+  letter-spacing: var(--tracking-vedette);
   font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Le total bouge à chaque frappe : un flash bref confirme la prise en
-   compte sans attirer l'œil plus longtemps qu'il ne faut. */
-@keyframes battement {
-  0% { transform: scale(1); color: var(--encre); }
-  30% { transform: scale(1.028); color: var(--accent); }
-  100% { transform: scale(1); color: var(--encre); }
-}
-
-.montant-vedette--anime {
-  animation: battement 0.34s ease-out;
   transform-origin: left center;
+  will-change: transform;
 }
 
 .ligne-calcul {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 30px;
+  gap: var(--espace-3);
+  min-height: 2rem;
 }
 
 .ligne-calcul__libelle {
-  font-size: 14px;
+  font-size: var(--taille-corps);
   color: var(--encre-douce);
 }
 
@@ -229,8 +277,8 @@
 }
 
 .ligne-calcul--saisie .champ {
-  width: 118px;
-  padding: 6px 9px;
+  width: 7.5rem;
+  padding: 0.375rem 0.5625rem;
 }
 
 .ligne-calcul--negatif .ligne-calcul__valeur {
@@ -238,300 +286,36 @@
 }
 
 .ligne-calcul--totale {
-  padding-top: 12px;
+  padding-top: var(--espace-3);
   border-top: 1px solid var(--trait);
 }
 
 .ligne-calcul--totale .ligne-calcul__libelle {
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--taille-section);
+  letter-spacing: var(--tracking-section);
   color: var(--encre);
 }
 
 .ligne-calcul--totale .ligne-calcul__valeur {
-  font-size: 22px;
+  font-size: 1.375rem;
+  letter-spacing: -0.02em;
   font-weight: 700;
-  letter-spacing: -0.015em;
 }
 
 .panneau__pied {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 4px;
+  gap: var(--espace-3);
+  padding-top: var(--espace-1);
 }
 
 .panneau__note {
-  font-size: 12.5px;
+  font-size: var(--taille-appoint);
+  line-height: var(--leading-appoint);
+  letter-spacing: var(--tracking-appoint);
   color: var(--encre-effacee);
   text-align: center;
-}
-
-/* --- Écran Coffre ----------------------------------------------------- */
-
-.coffre-solde {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 34px 32px;
-}
-
-.coffre-solde__chiffre {
-  display: block;
-  font-size: 64px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  font-variant-numeric: tabular-nums;
-}
-
-.coffre-solde__meta {
-  margin-top: 8px;
-  font-size: 14px;
-  color: var(--encre-douce);
-}
-
-.coffre-solde__actions {
-  display: flex;
-  gap: 10px;
-}
-
-.coffre-detail {
-  margin-top: var(--gouttiere);
-  overflow: hidden;
-}
-
-.coffre-vide {
-  padding: 26px 32px;
-  color: var(--encre-douce);
-  font-size: 14px;
-}
-
-/* --- Tableaux --------------------------------------------------------- */
-
-.tableau {
-  width: 100%;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-}
-
-.tableau th {
-  padding: 11px 16px;
-  text-align: left;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--encre-douce);
-  background: var(--surface-douce);
-  border-bottom: 1px solid var(--trait);
-}
-
-.tableau td {
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--trait);
-}
-
-.tableau tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.tableau tbody tr:hover td {
-  background: var(--surface-douce);
-}
-
-.tableau .col-nombre {
-  text-align: right;
-}
-
-.tableau tfoot td {
-  padding: 13px 16px;
-  font-weight: 700;
-  background: var(--surface-douce);
-  border-top: 2px solid var(--trait-fort);
-}
-
-/* Une coupure absente reste visible, en gris clair : savoir qu'il n'y a
-   plus de pièces de 20 centimes est une information utile. */
-.ligne-absente td {
-  color: var(--encre-effacee);
-}
-
-.ligne-absente .jeton {
-  opacity: 0.4;
-  filter: grayscale(0.55);
-}
-
-.tableau__vide {
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--encre-douce);
-}
-
-.cellule-coupure {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.cellule-coupure__nom {
-  font-weight: 600;
-}
-
-.badge-agent {
-  display: inline-block;
-  min-width: 30px;
-  padding: 2px 7px;
-  border-radius: var(--rayon-s);
-  background: var(--surface-creuse);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-align: center;
-  color: var(--encre-douce);
-}
-
-.montant-negatif {
-  color: var(--alerte);
-}
-
-/* --- Modale ----------------------------------------------------------- */
-
-.voile {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 20px;
-  overflow-y: auto;
-  background: rgb(16 32 46 / 0.42);
-  animation: apparition 0.14s ease-out;
-}
-
-@keyframes apparition {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modale {
-  width: 100%;
-  max-width: 620px;
-  background: var(--surface);
-  border-radius: var(--rayon-l);
-  box-shadow: var(--ombre-l);
-  animation: montee 0.16s ease-out;
-}
-
-@keyframes montee {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.modale__entete {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--trait);
-}
-
-.modale__entete h2 {
-  font-size: 17px;
-}
-
-.modale__entete p {
-  margin-top: 3px;
-  font-size: 13px;
-  color: var(--encre-douce);
-}
-
-.modale__corps {
-  padding: 18px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.modale__pied {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 22px;
-  border-top: 1px solid var(--trait);
-  background: var(--surface-douce);
-  border-radius: 0 0 var(--rayon-l) var(--rayon-l);
-}
-
-.modale__total {
-  font-size: 15px;
-  color: var(--encre-douce);
-}
-
-.modale__total strong {
-  font-size: 20px;
-  color: var(--encre);
-  font-variant-numeric: tabular-nums;
-}
-
-.modale__actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* --- Divers ----------------------------------------------------------- */
-
-.pile {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.chargement {
-  padding: 60px 0;
-  text-align: center;
-  color: var(--encre-douce);
-}
-
-.liste-fichiers {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 13px;
-  color: var(--encre-douce);
-  font-variant-numeric: tabular-nums;
-}
-
-.liste-fichiers li {
-  padding: 5px 0;
-  border-bottom: 1px solid var(--trait);
-}
-
-.liste-fichiers li:last-child {
-  border-bottom: 0;
-}
-
-/* --- Chèques ---------------------------------------------------------- */
-
-.saisie-cheques {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.saisie-cheques__nombre {
-  width: 52px;
-  padding: 6px 8px;
-}
-
-.saisie-cheques__pour {
-  font-size: 12.5px;
-  color: var(--encre-effacee);
 }
 
 .panneau__note--alerte {
@@ -539,57 +323,57 @@
   text-align: left;
 }
 
-.cellule-appoint {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--encre-effacee);
-}
+/* --- Écran Coffre ------------------------------------------------------- */
 
-.montant-nul {
-  color: var(--encre-effacee);
-}
-
-.sortie-cheques {
+.coffre-solde {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--trait);
-  border-radius: var(--rayon-m);
-  background: var(--surface-douce);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace-5);
+  padding: var(--espace-6) var(--espace-6);
 }
 
-.sortie-cheques > div:first-child {
-  flex: 1;
-  min-width: 160px;
+/* Le chiffre du coffre est le plus grand de l'application : c'est celui
+   qu'on vérifie en ouvrant la porte. */
+.coffre-solde__chiffre {
+  display: block;
+  font-size: var(--taille-geante);
+  line-height: var(--leading-geante);
+  letter-spacing: var(--tracking-geante);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.sortie-cheques__stock {
-  margin-top: 2px;
-  font-size: 12.5px;
-  color: var(--encre-effacee);
+.coffre-solde__meta {
+  margin-top: var(--espace-2);
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-douce);
 }
 
-/* --- Les deux caisses du coffre --------------------------------------- */
+.coffre-solde__actions {
+  display: flex;
+  gap: var(--espace-2);
+}
 
 .coffre-solde__caisses {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin-top: 12px;
+  gap: var(--espace-2) var(--espace-3);
+  margin-top: var(--espace-3);
 }
 
 .pastille-caisse {
   display: inline-flex;
   align-items: baseline;
-  gap: 7px;
-  padding: 5px 12px;
+  gap: var(--espace-2);
+  padding: 0.3125rem 0.75rem;
   border: 1px solid;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
   color: var(--encre-douce);
 }
 
@@ -615,13 +399,13 @@
 }
 
 .coffre-solde__cheques {
-  font-size: 12.5px;
+  font-size: var(--taille-appoint);
   color: var(--encre-effacee);
 }
 
 .coffre-caisses {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
   gap: var(--gouttiere);
   margin-top: var(--gouttiere);
   align-items: start;
@@ -644,24 +428,23 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  padding: 16px 18px;
+  gap: var(--espace-4);
+  padding: var(--espace-4) var(--espace-5);
   border-bottom: 1px solid var(--trait);
 }
 
-.caisse__entete h2 {
-  font-size: 16px;
-}
-
 .caisse__entete p {
-  margin-top: 3px;
-  font-size: 12.5px;
+  margin-top: var(--espace-1);
+  font-size: var(--taille-appoint);
+  line-height: var(--leading-appoint);
+  letter-spacing: var(--tracking-appoint);
   color: var(--encre-douce);
   max-width: 34ch;
 }
 
 .caisse__total {
-  font-size: 19px;
+  font-size: 1.1875rem;
+  letter-spacing: -0.016em;
   font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -671,28 +454,324 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  padding: 11px 18px;
+  gap: var(--espace-3);
+  padding: 0.6875rem var(--espace-5);
   background: var(--alerte-clair);
   border-bottom: 1px solid var(--trait);
-  font-size: 14px;
+  font-size: var(--taille-corps);
   color: var(--alerte);
 }
 
 .caisse__cheques strong {
-  font-size: 16px;
+  font-size: var(--taille-section);
   font-variant-numeric: tabular-nums;
 }
 
 .caisse__vide {
-  padding: 22px 18px;
-  font-size: 13.5px;
+  padding: var(--espace-5);
+  font-size: var(--taille-appoint);
   color: var(--encre-effacee);
+}
+
+/* --- Tableaux ----------------------------------------------------------- */
+
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableau th {
+  padding: 0.6875rem var(--espace-4);
+  text-align: left;
+  font-size: var(--taille-etiquette);
+  line-height: var(--leading-etiquette);
+  letter-spacing: var(--tracking-etiquette);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  background: var(--surface-douce);
+  border-bottom: 1px solid var(--trait);
+}
+
+.tableau td {
+  padding: 0.625rem var(--espace-4);
+  border-bottom: 1px solid var(--trait);
+}
+
+.tableau tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableau tbody tr {
+  transition: background 100ms ease-out;
+}
+
+.tableau tbody tr:hover td {
+  background: var(--surface-douce);
+}
+
+.tableau .col-nombre {
+  text-align: right;
+}
+
+.tableau tfoot td {
+  padding: 0.8125rem var(--espace-4);
+  font-weight: 700;
+  background: var(--surface-douce);
+  border-top: 2px solid var(--trait-fort);
+}
+
+/* Une coupure absente reste visible, en gris clair : savoir qu'il n'y a plus
+   de pièces de 20 centimes est une information utile. */
+.ligne-absente td {
+  color: var(--encre-effacee);
+}
+
+.ligne-absente .jeton {
+  opacity: 0.4;
+  filter: grayscale(0.55);
+}
+
+.tableau__vide {
+  padding: var(--espace-6) var(--espace-4);
+  text-align: center;
+  color: var(--encre-douce);
+}
+
+.cellule-coupure {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-3);
+}
+
+.cellule-coupure__nom {
+  font-weight: 600;
 }
 
 .cellule-coupure__liasses {
   display: block;
-  font-size: 11.5px;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-appoint);
   font-weight: 500;
   color: var(--alerte);
+  text-transform: none;
+}
+
+.cellule-appoint {
+  display: block;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-appoint);
+  font-weight: 500;
+  color: var(--encre-effacee);
+}
+
+.badge-agent {
+  display: inline-block;
+  min-width: 2rem;
+  padding: 0.125rem 0.4375rem;
+  border-radius: var(--rayon-xs);
+  background: var(--surface-creuse);
+  font-size: var(--taille-etiquette);
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  text-align: center;
+  color: var(--encre-douce);
+}
+
+.montant-negatif {
+  color: var(--alerte);
+}
+
+.montant-nul {
+  color: var(--encre-effacee);
+}
+
+/* --- Feuille modale -----------------------------------------------------
+   Une tâche modale s'accompagne d'un voile qui assombrit et repousse le
+   fond : on ferme le passage, donc on le dit. */
+
+.voile {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--espace-6) var(--espace-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Le voile porte l'assombrissement sur son propre calque : posé sur le
+   conteneur, il ferait pâlir la feuille avec lui. */
+.voile__fond {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: var(--matiere-voile);
+  cursor: default;
+  will-change: opacity;
+}
+
+.feuille {
+  position: relative;
+  width: 100%;
+  max-width: 40rem;
+  /* Matière plus légère que le chrome : elle attire l'œil sur l'interactif.
+     On ne l'empile jamais sur une autre matière légère. */
+  background: var(--matiere-feuille);
+  border: 1px solid var(--matiere-chrome-bord);
+  border-radius: var(--rayon-xl);
+  /* Grande surface : ombre profonde, elle se lit comme épaisse. */
+  box-shadow: var(--ombre-flottante);
+  will-change: transform, opacity;
+  transform-origin: center top;
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .feuille {
+    background: var(--surface);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* La zone par laquelle on attrape la feuille. */
+.feuille__prise {
+  touch-action: none;
+  cursor: grab;
+  border-radius: var(--rayon-xl) var(--rayon-xl) 0 0;
+}
+
+.feuille__prise:active {
+  cursor: grabbing;
+}
+
+.feuille__poignee {
+  display: block;
+  width: 2.25rem;
+  height: 0.3125rem;
+  margin: 0.5rem auto 0;
+  border-radius: 999px;
+  background: var(--trait-fort);
+}
+
+.feuille__entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espace-4);
+  padding: var(--espace-3) var(--espace-5) var(--espace-4);
+  border-bottom: 1px solid var(--trait);
+}
+
+/* Vibrance : sur une matière translucide, le texte gagne un peu de poids et
+   de tracking plutôt que de virer au gris plat. */
+.feuille__entete h2 {
+  font-weight: 700;
+}
+
+.feuille__entete p {
+  margin-top: var(--espace-1);
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-douce);
+}
+
+.feuille__corps {
+  padding: var(--espace-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-4);
+}
+
+.feuille__pied {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace-4);
+  padding: var(--espace-4) var(--espace-5);
+  border-top: 1px solid var(--trait);
+  background: var(--matiere-chrome);
+  backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
+  border-radius: 0 0 var(--rayon-xl) var(--rayon-xl);
+}
+
+.feuille__total {
+  font-size: var(--taille-corps);
+  color: var(--encre-douce);
+}
+
+.feuille__total strong {
+  display: block;
+  font-size: 1.25rem;
+  letter-spacing: -0.018em;
+  color: var(--encre);
+  font-variant-numeric: tabular-nums;
+}
+
+.feuille__actions {
+  display: flex;
+  gap: var(--espace-2);
+}
+
+/* --- Chèques ------------------------------------------------------------ */
+
+.sortie-cheques {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espace-3);
+  padding: var(--espace-4);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-m);
+  background: var(--surface-douce);
+}
+
+.sortie-cheques > div:first-child {
+  flex: 1;
+  min-width: 10rem;
+}
+
+.sortie-cheques__stock {
+  margin-top: var(--espace-1);
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-effacee);
+}
+
+/* --- Divers -------------------------------------------------------------- */
+
+.pile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-3);
+}
+
+.chargement {
+  padding: var(--espace-7) 0;
+  text-align: center;
+  color: var(--encre-douce);
+}
+
+.liste-fichiers {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--taille-appoint);
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.liste-fichiers li {
+  padding: var(--espace-1) 0;
+  border-bottom: 1px solid var(--trait);
+}
+
+.liste-fichiers li:last-child {
+  border-bottom: 0;
 }

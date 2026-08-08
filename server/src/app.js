@@ -40,22 +40,16 @@ export function creerApp(options) {
     Promise.resolve(handler(req, res, next)).catch(next);
 
   /**
-   * Chèques d'une requête : un nombre et un montant total, tous deux entiers.
-   * Un nombre sans montant (ou l'inverse) est une saisie incomplète, pas un zéro.
+   * Chèques d'une requête : un seul montant total.
+   *
+   * La colonne `cheques_nombre` reste en base — les migrations sont
+   * append-only et l'historique déjà écrit la porte — mais on ne la
+   * renseigne plus : un montant suffit à vérifier la caisse rouge.
    */
-  const lireCheques = (corps) => {
-    const nombre = montantCentimes(corps.cheques_nombre ?? 0, 'Le nombre de chèques');
-    const centimes = montantCentimes(corps.cheques_centimes ?? 0, 'Le montant des chèques');
-
-    if ((nombre === 0) !== (centimes === 0)) {
-      throw new ErreurValidation(
-        nombre === 0
-          ? 'Indiquez combien de chèques composent ce montant.'
-          : 'Indiquez le montant total des chèques.',
-      );
-    }
-    return { nombre, centimes };
-  };
+  const lireCheques = (corps) => ({
+    nombre: 0,
+    centimes: montantCentimes(corps.cheques_centimes ?? 0, 'Le montant des chèques'),
+  });
 
   // --- Paramètres -----------------------------------------------------------
 

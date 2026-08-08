@@ -28,20 +28,18 @@ describe('chèques au comptage', () => {
     const comptage = valider({
       detail: { 2000: 5 },
       cb: 10_000,
-      cheques: { nombre: 3, centimes: 7_500 },
+      cheques: { nombre: 0, centimes: 7_500 },
     });
 
-    assert.equal(comptage.cheques_nombre, 3);
     assert.equal(comptage.cheques_centimes, 7_500);
     // 100 € espèces + 100 € CB + 75 € chèques
     assert.equal(comptage.recette_centimes, 10_000 + 10_000 + 7_500);
   });
 
   it('les fait monter au coffre, contrairement à la CB', () => {
-    valider({ detail: { 2000: 5 }, cb: 50_000, cheques: { nombre: 2, centimes: 6_000 } });
+    valider({ detail: { 2000: 5 }, cb: 50_000, cheques: { nombre: 0, centimes: 6_000 } });
 
     const coffre = etatCoffre(db);
-    assert.equal(coffre.cheques.nombre, 2);
     assert.equal(coffre.cheques.centimes, 6_000);
     // 100 € d'espèces + 60 € de chèques, et pas un centime de CB.
     assert.equal(coffre.especes_centimes, 10_000);
@@ -49,7 +47,7 @@ describe('chèques au comptage', () => {
   });
 
   it('crée un versement même sans une seule espèce', () => {
-    const comptage = valider({ cheques: { nombre: 1, centimes: 4_500 } });
+    const comptage = valider({ cheques: { nombre: 0, centimes: 4_500 } });
     assert.notEqual(comptage.mouvement_id, null);
     assert.equal(etatCoffre(db).solde_centimes, 4_500);
   });
@@ -59,20 +57,19 @@ describe('chèques au comptage', () => {
   });
 
   it('les cumule dans le journal', () => {
-    valider({ date: '2026-08-06', cheques: { nombre: 2, centimes: 5_000 } });
-    valider({ date: '2026-08-07', cheques: { nombre: 3, centimes: 9_000 } });
+    valider({ date: '2026-08-06', cheques: { nombre: 0, centimes: 5_000 } });
+    valider({ date: '2026-08-07', cheques: { nombre: 0, centimes: 9_000 } });
 
     const { cumul } = journal(db);
-    assert.equal(cumul.cheques_nombre, 5);
     assert.equal(cumul.cheques_centimes, 14_000);
     assert.equal(cumul.recette_centimes, 14_000);
   });
 
   it('les range en caisse rouge', () => {
-    valider({ detail: { 200: 20 }, cheques: { nombre: 2, centimes: 5_000 } });
+    valider({ detail: { 200: 20 }, cheques: { nombre: 0, centimes: 5_000 } });
     const { repartition } = etatCoffre(db);
 
-    assert.equal(repartition.rouge.cheques.nombre, 2);
+    assert.equal(repartition.rouge.cheques.centimes, 5_000);
     assert.equal(repartition.rouge.total_centimes, 5_000);
     // Les pièces de 2 € restent en grise, quelle que soit leur quantité.
     assert.equal(repartition.grise.total_centimes, 4_000);
@@ -81,7 +78,7 @@ describe('chèques au comptage', () => {
 
 describe('chèques à la sortie du coffre', () => {
   beforeEach(() => {
-    valider({ detail: { 5000: 4 }, cheques: { nombre: 5, centimes: 12_000 } });
+    valider({ detail: { 5000: 4 }, cheques: { nombre: 0, centimes: 12_000 } });
   });
 
   it('sortent avec le reste lors d’une remise en banque', () => {
@@ -90,14 +87,14 @@ describe('chèques à la sortie du coffre', () => {
       agent: 'BR',
       motif: 'Remise en banque',
       quantites: normaliserQuantites({ 5000: 4 }),
-      cheques: { nombre: 5, centimes: 12_000 },
+      cheques: { nombre: 0, centimes: 12_000 },
     });
 
     assert.equal(sortie.montant_centimes, 20_000 + 12_000);
     assert.equal(sortie.especes_centimes, 20_000);
     assert.equal(sortie.cheques_centimes, 12_000);
     assert.equal(etatCoffre(db).solde_centimes, 0);
-    assert.deepEqual(chequesAuCoffre(db), { nombre: 0, centimes: 0 });
+    assert.equal(chequesAuCoffre(db).centimes, 0);
   });
 
   it('peuvent sortir seuls, sans aucune espèce', () => {
@@ -106,25 +103,9 @@ describe('chèques à la sortie du coffre', () => {
       agent: 'BR',
       motif: 'Remise en banque',
       quantites: new Map(),
-      cheques: { nombre: 5, centimes: 12_000 },
+      cheques: { nombre: 0, centimes: 12_000 },
     });
     assert.equal(etatCoffre(db).solde_centimes, 20_000);
-  });
-
-  it('refusent de sortir plus de chèques qu’il n’y en a', () => {
-    assert.throws(
-      () =>
-        enregistrerSortie(db, {
-          date: '2026-08-08',
-          agent: 'BR',
-          motif: 'Remise en banque',
-          quantites: new Map(),
-          cheques: { nombre: 9, centimes: 12_000 },
-        }),
-      /Pas autant de chèques/,
-    );
-    // Rien n'a bougé.
-    assert.equal(etatCoffre(db).solde_centimes, 32_000);
   });
 
   it('refusent de sortir un montant de chèques supérieur au stock', () => {
@@ -135,10 +116,24 @@ describe('chèques à la sortie du coffre', () => {
           agent: 'BR',
           motif: 'Remise en banque',
           quantites: new Map(),
-          cheques: { nombre: 1, centimes: 99_000 },
+          cheques: { nombre: 0, centimes: 12_001 },
         }),
-      ErreurValidation,
+      /Pas autant de chèques/,
     );
+    // Rien n'a bougé.
+    assert.equal(etatCoffre(db).solde_centimes, 32_000);
+  });
+
+  it('acceptent une sortie partielle de chèques', () => {
+    enregistrerSortie(db, {
+      date: '2026-08-08',
+      agent: 'BR',
+      motif: 'Remise en banque',
+      quantites: new Map(),
+      cheques: { nombre: 0, centimes: 5_000 },
+    });
+    assert.equal(chequesAuCoffre(db).centimes, 7_000);
+    assert.equal(etatCoffre(db).solde_centimes, 27_000);
   });
 
   it('refusent une sortie totalement vide', () => {
@@ -153,6 +148,13 @@ describe('chèques à la sortie du coffre', () => {
         }),
       ErreurValidation,
     );
+  });
+
+  it('laissent la colonne du nombre à zéro : elle n’est plus renseignée', () => {
+    const mouvement = db
+      .prepare("SELECT cheques_nombre FROM mouvements_coffre WHERE type = 'versement'")
+      .get();
+    assert.equal(mouvement.cheques_nombre, 0);
   });
 });
 

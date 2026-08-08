@@ -163,7 +163,7 @@ export function enregistrerSortie(db, params) {
     contenantId = CONTENANT_PAR_DEFAUT,
   } = params;
 
-  if (quantites.size === 0 && cheques.nombre === 0 && cheques.centimes === 0) {
+  if (quantites.size === 0 && cheques.centimes === 0) {
     throw new ErreurValidation(
       'Une sortie doit porter sur au moins une coupure ou un chèque.',
     );
@@ -187,12 +187,9 @@ export function enregistrerSortie(db, params) {
     }
 
     const stockCheques = chequesAuCoffre(db, contenantId);
-    if (
-      cheques.nombre > stockCheques.nombre ||
-      cheques.centimes > stockCheques.centimes
-    ) {
+    if (cheques.centimes > stockCheques.centimes) {
       throw new ErreurValidation(
-        `Pas autant de chèques au coffre : demandé ${cheques.nombre} pour ${cheques.centimes} centimes, disponible ${stockCheques.nombre} pour ${stockCheques.centimes} centimes.`,
+        `Pas autant de chèques au coffre : demandé ${cheques.centimes} centimes, disponible ${stockCheques.centimes} centimes.`,
         { cheques: { demande: cheques, disponible: stockCheques } },
       );
     }

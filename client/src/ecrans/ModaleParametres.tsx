@@ -6,6 +6,7 @@ import { Modale } from '../composants/Modale';
 interface Props {
   fondDefautCentimes: number;
   agents: string[];
+  origine?: { x: number; y: number } | null;
   onFermer: () => void;
   onEnregistre: () => void;
 }
@@ -13,6 +14,7 @@ interface Props {
 export function ModaleParametres({
   fondDefautCentimes,
   agents,
+  origine,
   onFermer,
   onEnregistre,
 }: Props) {
@@ -58,11 +60,12 @@ export function ModaleParametres({
   return (
     <Modale
       titre="Paramètres"
+      origine={origine}
       onFermer={onFermer}
       pied={
         <>
-          <span className="modale__total" />
-          <div className="modale__actions">
+          <span className="feuille__total" />
+          <div className="feuille__actions">
             <button type="button" className="bouton" onClick={onFermer}>
               Annuler
             </button>

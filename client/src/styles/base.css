@@ -15,11 +15,14 @@ body,
 body {
   margin: 0;
   font-family: var(--police);
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: var(--taille-corps);
+  line-height: var(--leading-corps);
+  letter-spacing: var(--tracking-corps);
+  font-optical-sizing: auto;
   color: var(--encre);
   background: var(--fond);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -29,8 +32,26 @@ p {
   margin: 0;
 }
 
+/* La hiérarchie se construit avec le poids, la taille et le leading
+   ensemble — pas avec la taille seule. Le poids donne de la présence sans
+   prendre plus de place. */
+h1 {
+  font-size: var(--taille-titre);
+  line-height: var(--leading-titre);
+  letter-spacing: var(--tracking-titre);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: var(--taille-section);
+  line-height: var(--leading-section);
+  letter-spacing: var(--tracking-section);
+  font-weight: 650;
+}
+
 button {
   font: inherit;
+  letter-spacing: inherit;
   color: inherit;
   cursor: pointer;
 }
@@ -39,33 +60,48 @@ input,
 select,
 textarea {
   font: inherit;
+  letter-spacing: inherit;
   color: inherit;
 }
 
-/* Tous les chiffres sont alignés en colonne : c'est ce qui rend un tableau
-   de montants lisible d'un coup d'œil. */
-.chiffres {
+/* Tous les chiffres alignés en colonne : c'est ce qui rend un tableau de
+   montants lisible d'un coup d'œil. */
+.chiffres,
+.tableau,
+.montant {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
 
-/* --- Boutons --------------------------------------------------------- */
+/* --- Boutons ----------------------------------------------------------
+   Le retour visuel vit sur l'appui, pas sur le relâchement : attendre le
+   clic pour réagir donne une interface morte. 100 ms, c'est le seuil en
+   dessous duquel l'appui se sent immédiat. */
 
 .bouton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: var(--espace-2);
+  padding: 0.5rem 0.875rem;
   border: 1px solid var(--trait-fort);
   border-radius: var(--rayon-s);
   background: var(--surface);
   color: var(--encre);
+  font-size: var(--taille-corps);
   font-weight: 600;
   white-space: nowrap;
-  /* Les liens d'export portent la même classe : pas de soulignement. */
   text-decoration: none;
-  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  /* transform et opacity uniquement : le compositeur les anime sans
+     repasser par la mise en page. */
+  transition:
+    background 120ms ease-out,
+    border-color 120ms ease-out,
+    opacity 120ms ease-out,
+    transform 100ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bouton:hover:not(:disabled) {
@@ -73,34 +109,42 @@ textarea {
   border-color: var(--encre-effacee);
 }
 
+.bouton:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
+
 .bouton:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .bouton--principal {
   background: var(--accent);
-  border-color: var(--accent);
+  border-color: transparent;
   color: #fff;
+  box-shadow: var(--ombre-pose);
 }
 
 .bouton--principal:hover:not(:disabled) {
   background: var(--accent-fort);
-  border-color: var(--accent-fort);
+  border-color: transparent;
 }
 
 .bouton--valider {
   width: 100%;
-  padding: 14px 18px;
-  font-size: 16px;
+  padding: 0.875rem 1.125rem;
+  font-size: var(--taille-section);
+  letter-spacing: var(--tracking-section);
   background: var(--succes);
-  border-color: var(--succes);
+  border-color: transparent;
   color: #fff;
+  box-shadow: var(--ombre-pose);
 }
 
 .bouton--valider:hover:not(:disabled) {
-  background: #0f6349;
-  border-color: #0f6349;
+  background: color-mix(in srgb, var(--succes) 85%, black);
+  border-color: transparent;
 }
 
 .bouton--danger {
@@ -117,28 +161,36 @@ textarea {
   border-color: transparent;
   background: transparent;
   color: var(--encre-douce);
-  padding: 6px 10px;
+  padding: 0.375rem 0.625rem;
 }
 
 .bouton--discret:hover:not(:disabled) {
   background: var(--surface-creuse);
   border-color: transparent;
+  color: var(--encre);
 }
 
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: var(--rayon-xs);
 }
 
-/* --- Champs ---------------------------------------------------------- */
+/* --- Champs ------------------------------------------------------------ */
 
 .champ {
   width: 100%;
-  padding: 8px 10px;
+  padding: 0.5rem 0.625rem;
   border: 1px solid var(--trait-fort);
   border-radius: var(--rayon-s);
   background: var(--surface);
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.champ:hover:not(:focus) {
+  border-color: var(--encre-effacee);
 }
 
 .champ:focus {
@@ -158,33 +210,38 @@ textarea {
   box-shadow: 0 0 0 3px var(--alerte-clair);
 }
 
+/* Le petit texte gagne un tracking légèrement positif : c'est ce qui le
+   garde lisible quand il rétrécit. */
 .etiquette {
   display: block;
-  margin-bottom: 5px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  margin-bottom: var(--espace-1);
+  font-size: var(--taille-etiquette);
+  line-height: var(--leading-etiquette);
+  letter-spacing: var(--tracking-etiquette);
+  font-weight: 650;
   text-transform: uppercase;
   color: var(--encre-douce);
 }
 
-/* --- Blocs ----------------------------------------------------------- */
+/* --- Blocs -------------------------------------------------------------- */
 
 .carte {
   background: var(--surface);
   border: 1px solid var(--trait);
   border-radius: var(--rayon-l);
-  box-shadow: var(--ombre-s);
+  box-shadow: var(--ombre-pose);
 }
 
 .message {
   display: flex;
-  gap: 10px;
+  gap: var(--espace-3);
   align-items: flex-start;
-  padding: 11px 14px;
+  padding: 0.6875rem 0.875rem;
   border: 1px solid;
   border-radius: var(--rayon-m);
-  font-size: 14px;
+  font-size: var(--taille-appoint);
+  line-height: var(--leading-appoint);
+  letter-spacing: var(--tracking-appoint);
 }
 
 .message--erreur {
@@ -195,7 +252,7 @@ textarea {
 
 .message--succes {
   background: var(--succes-clair);
-  border-color: #a9dbc8;
+  border-color: var(--succes-trait);
   color: var(--succes);
 }
 
@@ -205,11 +262,21 @@ textarea {
   color: var(--attention);
 }
 
+/* --- Mouvement réduit --------------------------------------------------
+   Moins de mouvement ne veut pas dire aucun retour : on remplace les
+   déplacements par de brefs fondus, et on retire les dépassements. Les
+   changements d'opacité et de couleur qui aident à comprendre restent. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+  }
+
+  .bouton:active:not(:disabled) {
+    transform: none;
+    background: var(--surface-creuse);
   }
 }

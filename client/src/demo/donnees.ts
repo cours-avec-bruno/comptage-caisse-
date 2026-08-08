@@ -86,7 +86,6 @@ export class MagasinDemo {
         detail: journee.detail,
         cb_centimes: journee.cb,
         fond_centimes: this.fondDefautCentimes,
-        cheques_nombre: journee.cheques?.nombre ?? 0,
         cheques_centimes: journee.cheques?.centimes ?? 0,
       });
     }
@@ -98,7 +97,6 @@ export class MagasinDemo {
       agent: 'ML',
       motif: 'Remise en banque',
       detail: { 5000: 5, 2000: 10 },
-      cheques_nombre: 0,
       cheques_centimes: 0,
     });
   }
@@ -164,7 +162,6 @@ export class MagasinDemo {
     detail: Record<number, number>;
     cb_centimes: number;
     fond_centimes: number;
-    cheques_nombre: number;
     cheques_centimes: number;
   }): Comptage {
     const detail = Object.entries(corps.detail)
@@ -185,7 +182,7 @@ export class MagasinDemo {
       especes_centimes: especes,
       cb_centimes: corps.cb_centimes,
       fond_centimes: corps.fond_centimes,
-      cheques_nombre: corps.cheques_nombre,
+      cheques_nombre: 0,
       cheques_centimes: corps.cheques_centimes,
       recette_especes_centimes: recetteEspeces,
       recette_centimes:
@@ -206,7 +203,7 @@ export class MagasinDemo {
         comptage_id: comptage.id,
         cree_le: horodatage(),
         detail,
-        cheques_nombre: corps.cheques_nombre,
+        cheques_nombre: 0,
         cheques_centimes: corps.cheques_centimes,
       });
       this.prochainMouvement += 1;
@@ -224,7 +221,6 @@ export class MagasinDemo {
     agent: string;
     motif: string;
     detail: Record<number, number>;
-    cheques_nombre: number;
     cheques_centimes: number;
   }): { id: number; montant_centimes: number } {
     const stock = new Map(
@@ -275,7 +271,7 @@ export class MagasinDemo {
         coupure_centimes: l.coupure_centimes,
         quantite: -l.quantite,
       })),
-      cheques_nombre: -corps.cheques_nombre,
+      cheques_nombre: 0,
       cheques_centimes: -corps.cheques_centimes,
     });
 
