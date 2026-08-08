@@ -12,6 +12,8 @@ body,
   height: 100%;
 }
 
+/* Le fond est un dégradé très doux, fixé : il donne de la profondeur sans
+   dessiner quoi que ce soit, et ne défile pas avec le contenu. */
 body {
   margin: 0;
   font-family: var(--police);
@@ -21,6 +23,8 @@ body {
   font-optical-sizing: auto;
   color: var(--encre);
   background: var(--fond);
+  background-image: linear-gradient(170deg, var(--fond-haut) 0%, var(--fond-bas) 65%);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -32,9 +36,8 @@ p {
   margin: 0;
 }
 
-/* La hiérarchie se construit avec le poids, la taille et le leading
-   ensemble — pas avec la taille seule. Le poids donne de la présence sans
-   prendre plus de place. */
+/* La hiérarchie se construit avec le poids, la taille et le leading ensemble
+   — pas avec la taille seule. */
 h1 {
   font-size: var(--taille-titre);
   line-height: var(--leading-titre);
@@ -73,32 +76,32 @@ textarea {
   font-feature-settings: 'tnum' 1;
 }
 
-/* --- Boutons ----------------------------------------------------------
-   Le retour visuel vit sur l'appui, pas sur le relâchement : attendre le
-   clic pour réagir donne une interface morte. 100 ms, c'est le seuil en
-   dessous duquel l'appui se sent immédiat. */
+/* --- Boutons ------------------------------------------------------------
+   Des pilules, généreuses au doigt comme à la souris. Le retour visuel vit
+   sur l'appui, pas sur le relâchement : attendre le clic donne une interface
+   morte. */
 
 .bouton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--espace-2);
-  padding: 0.5rem 0.875rem;
-  border: 1px solid var(--trait-fort);
-  border-radius: var(--rayon-s);
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--rayon-pilule);
   background: var(--surface);
   color: var(--encre);
   font-size: var(--taille-corps);
   font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
-  /* transform et opacity uniquement : le compositeur les anime sans
-     repasser par la mise en page. */
+  box-shadow: var(--ombre-pose);
   transition:
-    background 120ms ease-out,
-    border-color 120ms ease-out,
-    opacity 120ms ease-out,
-    transform 100ms cubic-bezier(0.32, 0.72, 0, 1);
+    background 140ms ease-out,
+    box-shadow 140ms ease-out,
+    opacity 140ms ease-out,
+    transform 110ms cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -106,128 +109,130 @@ textarea {
 
 .bouton:hover:not(:disabled) {
   background: var(--surface-douce);
-  border-color: var(--encre-effacee);
+  box-shadow: var(--ombre-releve);
 }
 
 .bouton:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.96);
   transition-duration: 60ms;
 }
 
 .bouton:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .bouton--principal {
   background: var(--accent);
-  border-color: transparent;
   color: #fff;
-  box-shadow: var(--ombre-pose);
 }
 
 .bouton--principal:hover:not(:disabled) {
   background: var(--accent-fort);
-  border-color: transparent;
 }
 
 .bouton--valider {
   width: 100%;
-  padding: 0.875rem 1.125rem;
+  min-height: 3.5rem;
+  padding: 1rem 1.5rem;
   font-size: var(--taille-section);
   letter-spacing: var(--tracking-section);
   background: var(--succes);
-  border-color: transparent;
   color: #fff;
-  box-shadow: var(--ombre-pose);
+  box-shadow: 0 4px 14px rgb(47 149 115 / 0.28);
 }
 
 .bouton--valider:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--succes) 85%, black);
-  border-color: transparent;
+  background: #268264;
+  box-shadow: 0 6px 20px rgb(47 149 115 / 0.34);
 }
 
 .bouton--danger {
-  border-color: var(--alerte-trait);
   color: var(--alerte);
 }
 
 .bouton--danger:hover:not(:disabled) {
   background: var(--alerte-clair);
-  border-color: var(--alerte);
 }
 
+/* Sans relief : pour ce qui accompagne, pas pour ce qui agit. */
 .bouton--discret {
-  border-color: transparent;
   background: transparent;
   color: var(--encre-douce);
-  padding: 0.375rem 0.625rem;
+  padding: 0.5rem 0.875rem;
+  box-shadow: none;
 }
 
 .bouton--discret:hover:not(:disabled) {
   background: var(--surface-creuse);
-  border-color: transparent;
   color: var(--encre);
+  box-shadow: none;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--rayon-xs);
+  outline: 2.5px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--rayon-s);
 }
 
-/* --- Champs ------------------------------------------------------------ */
+/* --- Champs --------------------------------------------------------------
+   Hauts et arrondis : on vise sans effort, même vite. */
 
 .champ {
   width: 100%;
-  padding: 0.5rem 0.625rem;
-  border: 1px solid var(--trait-fort);
+  min-height: 2.75rem;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid var(--trait);
   border-radius: var(--rayon-s);
-  background: var(--surface);
+  background: var(--surface-douce);
   transition:
-    border-color 120ms ease-out,
-    box-shadow 120ms ease-out;
+    border-color 140ms ease-out,
+    background 140ms ease-out,
+    box-shadow 140ms ease-out;
 }
 
 .champ:hover:not(:focus) {
-  border-color: var(--encre-effacee);
+  border-color: var(--trait-fort);
+  background: var(--surface);
 }
 
 .champ:focus {
   outline: none;
+  background: var(--surface);
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-clair);
+  box-shadow: 0 0 0 4px var(--accent-clair);
 }
 
 .champ--nombre {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .champ--erreur,
 .champ--erreur:focus {
   border-color: var(--alerte);
-  box-shadow: 0 0 0 3px var(--alerte-clair);
+  box-shadow: 0 0 0 4px var(--alerte-clair);
 }
 
-/* Le petit texte gagne un tracking légèrement positif : c'est ce qui le
-   garde lisible quand il rétrécit. */
 .etiquette {
   display: block;
-  margin-bottom: var(--espace-1);
+  margin-bottom: var(--espace-2);
   font-size: var(--taille-etiquette);
   line-height: var(--leading-etiquette);
   letter-spacing: var(--tracking-etiquette);
-  font-weight: 650;
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--encre-douce);
+  color: var(--encre-effacee);
 }
 
-/* --- Blocs -------------------------------------------------------------- */
+/* --- Blocs ---------------------------------------------------------------
+   Les cartes flottent sur une ombre, sans bordure : c'est l'espace et la
+   profondeur qui séparent, pas des filets. */
 
 .carte {
   background: var(--surface);
-  border: 1px solid var(--trait);
   border-radius: var(--rayon-l);
   box-shadow: var(--ombre-pose);
 }
@@ -236,8 +241,7 @@ textarea {
   display: flex;
   gap: var(--espace-3);
   align-items: flex-start;
-  padding: 0.6875rem 0.875rem;
-  border: 1px solid;
+  padding: var(--espace-4) var(--espace-5);
   border-radius: var(--rayon-m);
   font-size: var(--taille-appoint);
   line-height: var(--leading-appoint);
@@ -246,26 +250,22 @@ textarea {
 
 .message--erreur {
   background: var(--alerte-clair);
-  border-color: var(--alerte-trait);
   color: var(--alerte);
 }
 
 .message--succes {
   background: var(--succes-clair);
-  border-color: var(--succes-trait);
   color: var(--succes);
 }
 
 .message--attention {
   background: var(--attention-clair);
-  border-color: var(--attention-trait);
   color: var(--attention);
 }
 
-/* --- Mouvement réduit --------------------------------------------------
+/* --- Mouvement réduit ----------------------------------------------------
    Moins de mouvement ne veut pas dire aucun retour : on remplace les
-   déplacements par de brefs fondus, et on retire les dépassements. Les
-   changements d'opacité et de couleur qui aident à comprendre restent. */
+   déplacements par de brefs fondus et on retire les dépassements. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

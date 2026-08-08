@@ -177,7 +177,10 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
           <section className="carte caisse caisse--grise">
             <header className="caisse__entete">
               <div>
-                <h2>Caisse grise</h2>
+                <h2>
+                  <span className="caisse__puce" aria-hidden="true" />
+                  Caisse grise
+                </h2>
                 <p>Le courant : pièces, et les billets qui ne font pas encore liasse.</p>
               </div>
               <span className="caisse__total">
@@ -190,7 +193,10 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
           <section className="carte caisse caisse--rouge">
             <header className="caisse__entete">
               <div>
-                <h2>Caisse rouge</h2>
+                <h2>
+                  <span className="caisse__puce" aria-hidden="true" />
+                  Caisse rouge
+                </h2>
                 <p>
                   Les liasses de 10, tous les billets de 50 € et les chèques, quel que
                   soit leur nombre.
