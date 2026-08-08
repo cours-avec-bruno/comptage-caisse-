@@ -1,22 +1,22 @@
-/* --- Ossature ---------------------------------------------------------- */
+/* --- Ossature ------------------------------------------------------------ */
 
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100%;
   transform-origin: center 35%;
-  /* Courbe miroir de celle du retour : une transition réversible doit
-     revenir par le chemin qu'elle a pris. */
+  /* Courbe miroir de celle du retour : une transition réversible revient par
+     le chemin qu'elle a pris. */
   transition:
     transform 400ms cubic-bezier(0.32, 0.72, 0, 1),
     filter 400ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Le fond recule pendant qu'une feuille est ouverte : on ne le cache pas,
-   on l'éloigne — le contexte reste lisible, la tâche prend le premier plan. */
+/* Le fond recule pendant qu'une feuille est ouverte : on ne le cache pas, on
+   l'éloigne — le contexte reste lisible, la tâche prend le premier plan. */
 body.feuille-ouverte .app {
   transform: scale(0.982);
-  filter: brightness(0.96) saturate(0.9);
+  filter: brightness(0.97) saturate(0.92);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -35,9 +35,8 @@ body.feuille-ouverte .app {
   align-items: baseline;
   justify-content: center;
   gap: var(--espace-1) var(--espace-3);
-  padding: 0.5rem var(--espace-4);
+  padding: 0.625rem var(--espace-5);
   background: var(--attention-clair);
-  border-bottom: 1px solid var(--attention-trait);
   color: var(--attention);
   font-size: var(--taille-appoint);
   letter-spacing: var(--tracking-appoint);
@@ -50,37 +49,33 @@ body.feuille-ouverte .app {
   text-transform: uppercase;
 }
 
-/* --- Chrome translucide -------------------------------------------------
-   La barre est une couche flottante : le contenu passe dessous au lieu de
-   s'arrêter à une bande opaque. La matière est plus dense que les surfaces
-   du contenu — une matière lourde sépare les régions de structure. */
+/* --- Chrome translucide --------------------------------------------------
+   La barre est une couche flottante : le contenu passe dessous. */
 .barre {
   position: sticky;
   top: 0;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: var(--espace-4);
+  gap: var(--espace-5);
   height: var(--hauteur-barre);
   padding: 0 var(--gouttiere);
   background: var(--matiere-chrome);
   backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
-  /* Arête claire en haut : la lumière qui accroche la matière. */
   box-shadow: inset 0 1px 0 var(--matiere-chrome-bord);
 }
 
-/* Bord de défilement plutôt qu'un filet de 1 px : un dégradé estompe la
-   rencontre entre le contenu et le chrome flottant, seulement là où ils se
-   superposent vraiment. */
+/* Bord de défilement en dégradé plutôt qu'un filet de 1 px : le contenu
+   s'estompe là où il passe sous le chrome. */
 .barre::after {
   content: '';
   position: absolute;
   inset: 100% 0 auto 0;
-  height: 1.5rem;
+  height: 2rem;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--fond) 70%, transparent),
+    color-mix(in srgb, var(--fond-haut) 78%, transparent),
     transparent
   );
   pointer-events: none;
@@ -98,45 +93,48 @@ body.feuille-ouverte .app {
 .barre__marque span {
   font-size: var(--taille-etiquette);
   letter-spacing: var(--tracking-etiquette);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--encre-effacee);
   text-transform: uppercase;
 }
 
+/* Les onglets vivent dans une gouttière arrondie : le groupe se lit comme un
+   objet, pas comme trois liens posés côte à côte. */
 .barre__nav {
   display: flex;
   gap: var(--espace-1);
-  margin-left: var(--espace-2);
+  padding: var(--espace-1);
+  border-radius: var(--rayon-pilule);
+  background: var(--surface-creuse);
 }
 
-/* Des noms qui disent leur contenu : « Comptage », « Coffre », « Journal »
-   plutôt qu'un « Accueil » parapluie. */
 .onglet {
   position: relative;
-  padding: 0.4375rem 0.875rem;
+  padding: 0.5rem 1.125rem;
   border: 0;
-  border-radius: var(--rayon-s);
+  border-radius: var(--rayon-pilule);
   background: transparent;
   color: var(--encre-douce);
   font-weight: 600;
   transition:
-    background 120ms ease-out,
-    color 120ms ease-out,
-    transform 100ms cubic-bezier(0.32, 0.72, 0, 1);
+    background 160ms ease-out,
+    color 160ms ease-out,
+    box-shadow 160ms ease-out,
+    transform 110ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .onglet:hover {
-  background: var(--surface-creuse);
   color: var(--encre);
 }
 
 .onglet:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .onglet[aria-current='page'] {
-  background: var(--accent-clair);
+  background: var(--surface);
   color: var(--accent-fort);
+  box-shadow: var(--ombre-pose);
 }
 
 .barre__droite {
@@ -156,19 +154,20 @@ body.feuille-ouverte .app {
   display: flex;
   align-items: center;
   gap: var(--espace-2);
-  padding: 0.25rem 0.25rem 0.25rem 0.6875rem;
-  border: 1px solid var(--trait-fort);
-  border-radius: 999px;
+  min-height: 2.75rem;
+  padding: 0.25rem 0.5rem 0.25rem 1rem;
+  border-radius: var(--rayon-pilule);
   background: var(--surface);
+  box-shadow: var(--ombre-pose);
   font-size: var(--taille-appoint);
   color: var(--encre-douce);
-  transition: border-color 120ms ease-out, background 120ms ease-out;
+  transition: background 160ms ease-out, box-shadow 160ms ease-out;
 }
 
 .selecteur-agent select {
   border: 0;
   background: transparent;
-  padding: 0.1875rem 0.25rem;
+  padding: 0.25rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--accent-fort);
@@ -181,9 +180,9 @@ body.feuille-ouverte .app {
 
 /* Signaler ce qui manque, au moment où ça manque. */
 .selecteur-agent--vide {
-  border-color: var(--attention-trait);
   background: var(--attention-clair);
   color: var(--attention);
+  box-shadow: none;
 }
 
 .contenu {
@@ -191,19 +190,19 @@ body.feuille-ouverte .app {
   width: 100%;
   max-width: var(--largeur-contenu);
   margin: 0 auto;
-  padding: var(--gouttiere);
+  padding: var(--espace-7) var(--gouttiere) var(--espace-8);
 }
 
 .entete-ecran {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--espace-4);
-  margin-bottom: var(--espace-4);
+  gap: var(--espace-5);
+  margin-bottom: var(--espace-6);
 }
 
 .entete-ecran p {
-  margin-top: var(--espace-1);
+  margin-top: var(--espace-2);
   font-size: var(--taille-appoint);
   letter-spacing: var(--tracking-appoint);
   color: var(--encre-douce);
@@ -214,16 +213,16 @@ body.feuille-ouverte .app {
   gap: var(--espace-2);
 }
 
-/* --- Écran Comptage ----------------------------------------------------- */
+/* --- Écran Comptage ------------------------------------------------------ */
 
 .comptage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 21rem;
+  grid-template-columns: minmax(0, 1fr) 22rem;
   gap: var(--gouttiere);
   align-items: start;
 }
 
-@media (max-width: 68rem) {
+@media (max-width: 70rem) {
   .comptage {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -231,20 +230,22 @@ body.feuille-ouverte .app {
 
 .panneau {
   position: sticky;
-  top: calc(var(--hauteur-barre) + var(--gouttiere));
+  top: calc(var(--hauteur-barre) + var(--espace-5));
   display: flex;
   flex-direction: column;
-  gap: var(--espace-3);
-  padding: var(--espace-5);
+  gap: var(--espace-4);
+  padding: var(--espace-6);
+  border-radius: var(--rayon-xl);
+  box-shadow: var(--ombre-releve);
 }
 
 .panneau__vedette {
-  padding-bottom: var(--espace-3);
+  padding-bottom: var(--espace-4);
   border-bottom: 1px solid var(--trait);
 }
 
 .panneau__vedette .etiquette {
-  margin-bottom: var(--espace-1);
+  margin-bottom: var(--espace-2);
 }
 
 /* Grand texte : leading serré, tracking négatif. */
@@ -263,7 +264,7 @@ body.feuille-ouverte .app {
   align-items: center;
   justify-content: space-between;
   gap: var(--espace-3);
-  min-height: 2rem;
+  min-height: 2.5rem;
 }
 
 .ligne-calcul__libelle {
@@ -273,34 +274,49 @@ body.feuille-ouverte .app {
 
 .ligne-calcul__valeur {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .ligne-calcul--saisie .champ {
-  width: 7.5rem;
-  padding: 0.375rem 0.5625rem;
+  width: 8rem;
 }
 
 .ligne-calcul--negatif .ligne-calcul__valeur {
   color: var(--alerte);
 }
 
+/* La recette du jour est mise dans son propre bloc teinté : c'est le chiffre
+   qu'on retient. */
 .ligne-calcul--totale {
-  padding-top: var(--espace-3);
-  border-top: 1px solid var(--trait);
+  margin-top: var(--espace-1);
+  padding: var(--espace-4);
+  border-radius: var(--rayon-m);
+  background: var(--accent-clair);
 }
 
 .ligne-calcul--totale .ligne-calcul__libelle {
   font-weight: 700;
-  font-size: var(--taille-section);
-  letter-spacing: var(--tracking-section);
-  color: var(--encre);
+  font-size: var(--taille-corps);
+  color: var(--accent-fort);
+  white-space: nowrap;
 }
 
 .ligne-calcul--totale .ligne-calcul__valeur {
-  font-size: 1.375rem;
-  letter-spacing: -0.02em;
+  font-size: 1.5rem;
+  letter-spacing: -0.022em;
   font-weight: 700;
+  color: var(--accent-fort);
+}
+
+/* Une recette négative se voit : il manque de l'argent, on ne l'habille pas
+   des couleurs de la réussite. */
+.ligne-calcul--totale.ligne-calcul--negatif {
+  background: var(--alerte-clair);
+}
+
+.ligne-calcul--totale.ligne-calcul--negatif .ligne-calcul__libelle,
+.ligne-calcul--totale.ligne-calcul--negatif .ligne-calcul__valeur {
+  color: var(--alerte);
 }
 
 .panneau__pied {
@@ -323,19 +339,21 @@ body.feuille-ouverte .app {
   text-align: left;
 }
 
-/* --- Écran Coffre ------------------------------------------------------- */
+/* --- Écran Coffre -------------------------------------------------------- */
 
 .coffre-solde {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--espace-5);
-  padding: var(--espace-6) var(--espace-6);
+  gap: var(--espace-6);
+  padding: var(--espace-7);
+  border-radius: var(--rayon-xl);
+  box-shadow: var(--ombre-releve);
 }
 
-/* Le chiffre du coffre est le plus grand de l'application : c'est celui
-   qu'on vérifie en ouvrant la porte. */
+/* Le chiffre du coffre est le plus grand de l'application : c'est celui qu'on
+   vérifie en ouvrant la porte. */
 .coffre-solde__chiffre {
   display: block;
   font-size: var(--taille-geante);
@@ -346,15 +364,15 @@ body.feuille-ouverte .app {
 }
 
 .coffre-solde__meta {
-  margin-top: var(--espace-2);
+  margin-top: var(--espace-4);
   font-size: var(--taille-appoint);
   letter-spacing: var(--tracking-appoint);
-  color: var(--encre-douce);
+  color: var(--encre-effacee);
 }
 
 .coffre-solde__actions {
   display: flex;
-  gap: var(--espace-2);
+  gap: var(--espace-3);
 }
 
 .coffre-solde__caisses {
@@ -362,16 +380,15 @@ body.feuille-ouverte .app {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--espace-2) var(--espace-3);
-  margin-top: var(--espace-3);
+  margin-top: var(--espace-4);
 }
 
 .pastille-caisse {
   display: inline-flex;
   align-items: baseline;
   gap: var(--espace-2);
-  padding: 0.3125rem 0.75rem;
-  border: 1px solid;
-  border-radius: 999px;
+  padding: 0.4375rem 1rem;
+  border-radius: var(--rayon-pilule);
   font-size: var(--taille-appoint);
   letter-spacing: var(--tracking-appoint);
   color: var(--encre-douce);
@@ -379,18 +396,17 @@ body.feuille-ouverte .app {
 
 .pastille-caisse strong {
   font-variant-numeric: tabular-nums;
+  font-size: var(--taille-corps);
   color: var(--encre);
 }
 
 /* Les deux caisses sont physiquement grise et rouge : la couleur de la
    pastille est l'information, pas une décoration. */
 .pastille-caisse--grise {
-  border-color: var(--trait-fort);
   background: var(--surface-creuse);
 }
 
 .pastille-caisse--rouge {
-  border-color: var(--alerte-trait);
   background: var(--alerte-clair);
 }
 
@@ -405,7 +421,7 @@ body.feuille-ouverte .app {
 
 .coffre-caisses {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
   gap: var(--gouttiere);
   margin-top: var(--gouttiere);
   align-items: start;
@@ -413,15 +429,7 @@ body.feuille-ouverte .app {
 
 .caisse {
   overflow: hidden;
-  border-top: 3px solid;
-}
-
-.caisse--grise {
-  border-top-color: var(--trait-fort);
-}
-
-.caisse--rouge {
-  border-top-color: var(--alerte);
+  border-radius: var(--rayon-xl);
 }
 
 .caisse__entete {
@@ -429,12 +437,30 @@ body.feuille-ouverte .app {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--espace-4);
-  padding: var(--espace-4) var(--espace-5);
-  border-bottom: 1px solid var(--trait);
+  padding: var(--espace-5) var(--espace-6);
+}
+
+/* Une pastille de couleur en tête de carte plutôt qu'un liseré : elle nomme
+   la caisse au lieu de la souligner. */
+.caisse__puce {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: var(--espace-2);
+  border-radius: 50%;
+  vertical-align: 0.08em;
+}
+
+.caisse--grise .caisse__puce {
+  background: var(--trait-fort);
+}
+
+.caisse--rouge .caisse__puce {
+  background: var(--alerte);
 }
 
 .caisse__entete p {
-  margin-top: var(--espace-1);
+  margin-top: var(--espace-2);
   font-size: var(--taille-appoint);
   line-height: var(--leading-appoint);
   letter-spacing: var(--tracking-appoint);
@@ -443,8 +469,8 @@ body.feuille-ouverte .app {
 }
 
 .caisse__total {
-  font-size: 1.1875rem;
-  letter-spacing: -0.016em;
+  font-size: 1.375rem;
+  letter-spacing: -0.02em;
   font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -455,9 +481,10 @@ body.feuille-ouverte .app {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--espace-3);
-  padding: 0.6875rem var(--espace-5);
+  margin: 0 var(--espace-6) var(--espace-5);
+  padding: var(--espace-3) var(--espace-4);
+  border-radius: var(--rayon-m);
   background: var(--alerte-clair);
-  border-bottom: 1px solid var(--trait);
   font-size: var(--taille-corps);
   color: var(--alerte);
 }
@@ -468,12 +495,14 @@ body.feuille-ouverte .app {
 }
 
 .caisse__vide {
-  padding: var(--espace-5);
+  padding: 0 var(--espace-6) var(--espace-6);
   font-size: var(--taille-appoint);
   color: var(--encre-effacee);
 }
 
-/* --- Tableaux ----------------------------------------------------------- */
+/* --- Tableaux ------------------------------------------------------------
+   Pas de quadrillage : des lignes hautes, séparées par un filet presque
+   effacé. */
 
 .tableau {
   width: 100%;
@@ -481,29 +510,24 @@ body.feuille-ouverte .app {
 }
 
 .tableau th {
-  padding: 0.6875rem var(--espace-4);
+  padding: 0.75rem var(--espace-6);
   text-align: left;
   font-size: var(--taille-etiquette);
   line-height: var(--leading-etiquette);
   letter-spacing: var(--tracking-etiquette);
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--encre-douce);
+  color: var(--encre-effacee);
   background: var(--surface-douce);
-  border-bottom: 1px solid var(--trait);
 }
 
 .tableau td {
-  padding: 0.625rem var(--espace-4);
-  border-bottom: 1px solid var(--trait);
-}
-
-.tableau tbody tr:last-child td {
-  border-bottom: 0;
+  padding: 0.875rem var(--espace-6);
+  border-top: 1px solid var(--trait);
 }
 
 .tableau tbody tr {
-  transition: background 100ms ease-out;
+  transition: background 120ms ease-out;
 }
 
 .tableau tbody tr:hover td {
@@ -515,10 +539,10 @@ body.feuille-ouverte .app {
 }
 
 .tableau tfoot td {
-  padding: 0.8125rem var(--espace-4);
+  padding: var(--espace-4) var(--espace-6);
   font-weight: 700;
   background: var(--surface-douce);
-  border-top: 2px solid var(--trait-fort);
+  border-top: 1.5px solid var(--trait-fort);
 }
 
 /* Une coupure absente reste visible, en gris clair : savoir qu'il n'y a plus
@@ -528,20 +552,20 @@ body.feuille-ouverte .app {
 }
 
 .ligne-absente .jeton {
-  opacity: 0.4;
-  filter: grayscale(0.55);
+  opacity: 0.35;
+  filter: grayscale(0.6);
 }
 
 .tableau__vide {
-  padding: var(--espace-6) var(--espace-4);
+  padding: var(--espace-7) var(--espace-6);
   text-align: center;
-  color: var(--encre-douce);
+  color: var(--encre-effacee);
 }
 
 .cellule-coupure {
   display: flex;
   align-items: center;
-  gap: var(--espace-3);
+  gap: var(--espace-4);
 }
 
 .cellule-coupure__nom {
@@ -567,15 +591,15 @@ body.feuille-ouverte .app {
 
 .badge-agent {
   display: inline-block;
-  min-width: 2rem;
-  padding: 0.125rem 0.4375rem;
-  border-radius: var(--rayon-xs);
-  background: var(--surface-creuse);
+  min-width: 2.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--rayon-pilule);
+  background: var(--accent-clair);
   font-size: var(--taille-etiquette);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   font-weight: 700;
   text-align: center;
-  color: var(--encre-douce);
+  color: var(--accent-fort);
 }
 
 .montant-negatif {
@@ -586,9 +610,7 @@ body.feuille-ouverte .app {
   color: var(--encre-effacee);
 }
 
-/* --- Feuille modale -----------------------------------------------------
-   Une tâche modale s'accompagne d'un voile qui assombrit et repousse le
-   fond : on ferme le passage, donc on le dit. */
+/* --- Feuille modale ------------------------------------------------------ */
 
 .voile {
   position: fixed;
@@ -597,7 +619,7 @@ body.feuille-ouverte .app {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--espace-6) var(--espace-4);
+  padding: var(--espace-6) var(--espace-5);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -617,16 +639,13 @@ body.feuille-ouverte .app {
 .feuille {
   position: relative;
   width: 100%;
-  max-width: 40rem;
-  /* Matière plus légère que le chrome : elle attire l'œil sur l'interactif.
-     On ne l'empile jamais sur une autre matière légère. */
+  max-width: 41rem;
   background: var(--matiere-feuille);
-  border: 1px solid var(--matiere-chrome-bord);
   border-radius: var(--rayon-xl);
-  /* Grande surface : ombre profonde, elle se lit comme épaisse. */
   box-shadow: var(--ombre-flottante);
   will-change: transform, opacity;
   transform-origin: center top;
+  overflow: hidden;
 }
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
@@ -637,11 +656,9 @@ body.feuille-ouverte .app {
   }
 }
 
-/* La zone par laquelle on attrape la feuille. */
 .feuille__prise {
   touch-action: none;
   cursor: grab;
-  border-radius: var(--rayon-xl) var(--rayon-xl) 0 0;
 }
 
 .feuille__prise:active {
@@ -650,10 +667,10 @@ body.feuille-ouverte .app {
 
 .feuille__poignee {
   display: block;
-  width: 2.25rem;
+  width: 2.75rem;
   height: 0.3125rem;
-  margin: 0.5rem auto 0;
-  border-radius: 999px;
+  margin: 0.625rem auto 0;
+  border-radius: var(--rayon-pilule);
   background: var(--trait-fort);
 }
 
@@ -662,28 +679,21 @@ body.feuille-ouverte .app {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--espace-4);
-  padding: var(--espace-3) var(--espace-5) var(--espace-4);
-  border-bottom: 1px solid var(--trait);
-}
-
-/* Vibrance : sur une matière translucide, le texte gagne un peu de poids et
-   de tracking plutôt que de virer au gris plat. */
-.feuille__entete h2 {
-  font-weight: 700;
+  padding: var(--espace-4) var(--espace-6) var(--espace-5);
 }
 
 .feuille__entete p {
-  margin-top: var(--espace-1);
+  margin-top: var(--espace-2);
   font-size: var(--taille-appoint);
   letter-spacing: var(--tracking-appoint);
   color: var(--encre-douce);
 }
 
 .feuille__corps {
-  padding: var(--espace-5);
+  padding: 0 var(--espace-6) var(--espace-6);
   display: flex;
   flex-direction: column;
-  gap: var(--espace-4);
+  gap: var(--espace-5);
 }
 
 .feuille__pied {
@@ -693,23 +703,22 @@ body.feuille-ouverte .app {
   align-items: center;
   justify-content: space-between;
   gap: var(--espace-4);
-  padding: var(--espace-4) var(--espace-5);
-  border-top: 1px solid var(--trait);
+  padding: var(--espace-4) var(--espace-6);
   background: var(--matiere-chrome);
   backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--flou-chrome)) saturate(180%);
-  border-radius: 0 0 var(--rayon-xl) var(--rayon-xl);
+  box-shadow: inset 0 1px 0 var(--trait);
 }
 
 .feuille__total {
-  font-size: var(--taille-corps);
+  font-size: var(--taille-appoint);
   color: var(--encre-douce);
 }
 
 .feuille__total strong {
   display: block;
-  font-size: 1.25rem;
-  letter-spacing: -0.018em;
+  font-size: 1.375rem;
+  letter-spacing: -0.02em;
   color: var(--encre);
   font-variant-numeric: tabular-nums;
 }
@@ -719,15 +728,14 @@ body.feuille-ouverte .app {
   gap: var(--espace-2);
 }
 
-/* --- Chèques ------------------------------------------------------------ */
+/* --- Chèques -------------------------------------------------------------- */
 
 .sortie-cheques {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--espace-3);
-  padding: var(--espace-4);
-  border: 1px solid var(--trait);
+  gap: var(--espace-4);
+  padding: var(--espace-5);
   border-radius: var(--rayon-m);
   background: var(--surface-douce);
 }
@@ -744,16 +752,16 @@ body.feuille-ouverte .app {
   color: var(--encre-effacee);
 }
 
-/* --- Divers -------------------------------------------------------------- */
+/* --- Divers --------------------------------------------------------------- */
 
 .pile {
   display: flex;
   flex-direction: column;
-  gap: var(--espace-3);
+  gap: var(--espace-4);
 }
 
 .chargement {
-  padding: var(--espace-7) 0;
+  padding: var(--espace-8) 0;
   text-align: center;
   color: var(--encre-douce);
 }
@@ -768,10 +776,10 @@ body.feuille-ouverte .app {
 }
 
 .liste-fichiers li {
-  padding: var(--espace-1) 0;
-  border-bottom: 1px solid var(--trait);
+  padding: var(--espace-2) 0;
+  border-top: 1px solid var(--trait);
 }
 
-.liste-fichiers li:last-child {
-  border-bottom: 0;
+.liste-fichiers li:first-child {
+  border-top: 0;
 }

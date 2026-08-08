@@ -6,39 +6,33 @@
 
 .grille {
   overflow: hidden;
+  border-radius: var(--rayon-xl);
 }
 
+/* En-tête de famille : une étiquette discrète sur fond très clair, pas une
+   barre qui coupe la carte en deux. */
 .grille__section {
   display: flex;
   align-items: center;
   gap: var(--espace-3);
-  padding: 0.5625rem var(--espace-5);
-  background: var(--surface-douce);
-  border-bottom: 1px solid var(--trait);
+  padding: var(--espace-4) var(--espace-6) var(--espace-2);
   font-size: var(--taille-etiquette);
   line-height: var(--leading-etiquette);
   letter-spacing: var(--tracking-etiquette);
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--encre-douce);
-}
-
-.grille__section:not(:first-child) {
-  border-top: 1px solid var(--trait);
+  color: var(--encre-effacee);
 }
 
 .grille__ligne {
   display: grid;
-  grid-template-columns: 4.25rem minmax(7.5rem, 1fr) 6rem minmax(6.5rem, 7.75rem);
+  grid-template-columns: 4.5rem minmax(7.5rem, 1fr) 6.5rem minmax(6.5rem, 8rem);
   align-items: center;
-  gap: var(--espace-3);
-  padding: 0.375rem var(--espace-5);
-  border-bottom: 1px solid var(--trait);
-  transition: background 100ms ease-out;
-}
-
-.grille__ligne:last-child {
-  border-bottom: 0;
+  gap: var(--espace-4);
+  margin: 0 var(--espace-4);
+  padding: var(--espace-2) var(--espace-4);
+  border-radius: var(--rayon-m);
+  transition: background 140ms ease-out;
 }
 
 .grille__ligne:hover {
@@ -56,7 +50,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 2.75rem;
+  height: 3rem;
 }
 
 .grille__nom {
@@ -81,7 +75,7 @@
 .grille__valeur {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .grille__valeur--nulle {
@@ -89,14 +83,16 @@
   font-weight: 500;
 }
 
+/* Le total est un bandeau teinté au pied de la carte, arrondi comme elle. */
 .grille__total {
   display: grid;
-  grid-template-columns: 4.25rem minmax(7.5rem, 1fr) 6rem minmax(6.5rem, 7.75rem);
+  grid-template-columns: 4.5rem minmax(7.5rem, 1fr) 6.5rem minmax(6.5rem, 8rem);
   align-items: center;
-  gap: var(--espace-3);
-  padding: 0.8125rem var(--espace-5);
-  background: var(--surface-douce);
-  border-top: 2px solid var(--trait-fort);
+  gap: var(--espace-4);
+  margin: var(--espace-4) var(--espace-4) 0;
+  padding: var(--espace-4) var(--espace-4);
+  border-radius: var(--rayon-m);
+  background: var(--surface-creuse);
   font-weight: 700;
 }
 
@@ -120,29 +116,26 @@
 }
 
 .grille__aide {
-  padding: 0.5625rem var(--espace-5);
+  padding: var(--espace-4) var(--espace-6) var(--espace-5);
   font-size: var(--taille-appoint);
   line-height: var(--leading-appoint);
   letter-spacing: var(--tracking-appoint);
   color: var(--encre-effacee);
-  border-top: 1px solid var(--trait);
-  background: var(--surface-douce);
+  text-align: center;
 }
 
 .grille__aide kbd {
   display: inline-block;
-  padding: 0.0625rem 0.375rem;
-  border: 1px solid var(--trait-fort);
-  border-bottom-width: 2px;
+  padding: 0.125rem 0.5rem;
   border-radius: var(--rayon-xs);
-  background: var(--surface);
+  background: var(--surface-creuse);
   font-family: var(--police);
   font-size: var(--taille-etiquette);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--encre-douce);
 }
 
-/* --- Jetons -------------------------------------------------------------
+/* --- Jetons --------------------------------------------------------------
    Vraies couleurs de l'euro, proportions relatives réelles : la métaphore
    n'est utile que si elle respecte la physique de ce qu'elle représente. */
 
@@ -152,11 +145,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--ombre-pose);
+  box-shadow: 0 1px 3px rgb(36 62 76 / 0.16);
 }
 
 .jeton--billet {
-  border-radius: 3px;
+  border-radius: 4px;
   border: 1px solid;
 }
 

@@ -119,8 +119,10 @@ npm start          # sert l'API et le front buildé sur le port 4173
 
 ### Interface
 
-L'interface suit les principes de conception d'Apple (*Designing Fluid
-Interfaces*), traduits pour le web :
+Direction : **doux et spacieux**. Angles très arrondis, beaucoup d'air, ombres
+diffuses, contrôles généreux, palette pastel — rien ne doit agresser un agent
+qui compte sa caisse en fin de service. Les mécaniques d'interaction suivent les
+principes d'Apple (*Designing Fluid Interfaces*), traduits pour le web :
 
 - **Ressorts, pas de durées fixes.** `client/src/animation/ressort.ts` est un
   petit moteur maison (~90 lignes, aucune dépendance) piloté par
@@ -139,8 +141,10 @@ Interfaces*), traduits pour le web :
 - **Les feuilles émergent de leur déclencheur** et y retournent.
 - **Tracking et leading par taille**, jamais une valeur unique. Espacements en
   `rem` : agrandir le texte du système agrandit la mise en page.
-- **Thème sombre**, et prise en charge de `prefers-reduced-motion`,
-  `prefers-reduced-transparency` et `prefers-contrast`.
+- **Une seule apparence, claire.** Pas de thème sombre : l'accueil est un lieu
+  éclairé, et une seconde palette est une seconde chose à entretenir juste.
+- Prise en charge de `prefers-reduced-motion`, `prefers-reduced-transparency`
+  et `prefers-contrast`.
 
 ### Règles de code, non négociables
 
