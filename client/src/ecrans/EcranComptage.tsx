@@ -22,7 +22,6 @@ interface Props {
 export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: Props) {
   const [quantites, setQuantites] = useState<Quantites>(quantitesVides);
   const [cbCentimes, setCbCentimes] = useState(0);
-  const [chequesNombre, setChequesNombre] = useState(0);
   const [chequesCentimes, setChequesCentimes] = useState(0);
   const [fondCentimes, setFondCentimes] = useState(fondDefautCentimes);
   const [dejaValides, setDejaValides] = useState<ComptageDuJour[]>([]);
@@ -49,10 +48,6 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
   const rienASaisir =
     especesCentimes === 0 && cbCentimes === 0 && chequesCentimes === 0;
 
-  // Un nombre sans montant, ou l'inverse, est une saisie en cours d'écriture.
-  const chequesIncomplets =
-    (chequesNombre === 0) !== (chequesCentimes === 0);
-
   // Ce qui monte au coffre : les espèces et les chèques. Jamais la CB.
   const versementCentimes = especesCentimes + chequesCentimes;
 
@@ -68,7 +63,6 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
         detail: detailPourApi(quantites),
         cb_centimes: cbCentimes,
         fond_centimes: fondCentimes,
-        cheques_nombre: chequesNombre,
         cheques_centimes: chequesCentimes,
       });
 
@@ -87,7 +81,6 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
 
       setQuantites(quantitesVides());
       setCbCentimes(0);
-      setChequesNombre(0);
       setChequesCentimes(0);
       setFondCentimes(fondDefautCentimes);
       rechargerJournee();
@@ -174,42 +167,15 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
           </div>
 
           <div className="ligne-calcul ligne-calcul--saisie">
-            <label className="ligne-calcul__libelle" htmlFor="cheques-montant">
+            <label className="ligne-calcul__libelle" htmlFor="cheques">
               Chèques
             </label>
-            <div className="saisie-cheques">
-              <input
-                id="cheques-nombre"
-                className="champ champ--nombre saisie-cheques__nombre"
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                aria-label="Nombre de chèques"
-                placeholder="0"
-                value={chequesNombre === 0 ? '' : String(chequesNombre)}
-                onFocus={(evenement) => evenement.currentTarget.select()}
-                onChange={(evenement) =>
-                  setChequesNombre(
-                    Number(evenement.target.value.replace(/\D/g, '') || 0),
-                  )
-                }
-              />
-              <span className="saisie-cheques__pour">pour</span>
-              <ChampEuros
-                id="cheques-montant"
-                valeur={chequesCentimes}
-                onChange={setChequesCentimes}
-              />
-            </div>
+            <ChampEuros
+              id="cheques"
+              valeur={chequesCentimes}
+              onChange={setChequesCentimes}
+            />
           </div>
-
-          {chequesIncomplets && (
-            <p className="panneau__note panneau__note--alerte">
-              {chequesNombre === 0
-                ? 'Indiquez combien de chèques composent ce montant.'
-                : 'Indiquez le montant total des chèques.'}
-            </p>
-          )}
 
           <div
             className={`ligne-calcul ligne-calcul--totale${recetteJour < 0 ? ' ligne-calcul--negatif' : ''}`}
@@ -222,7 +188,7 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
             <button
               type="button"
               className="bouton bouton--valider"
-              disabled={enCours || rienASaisir || chequesIncomplets || !agent}
+              disabled={enCours || rienASaisir || !agent}
               onClick={valider}
             >
               {enCours ? 'Enregistrement…' : 'Valider et verser au coffre'}
@@ -233,9 +199,7 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
                 ? 'Sélectionnez vos initiales en haut à droite.'
                 : rienASaisir
                   ? 'Comptez au moins une coupure ou saisissez la recette CB.'
-                  : chequesIncomplets
-                    ? 'Complétez la ligne des chèques.'
-                    : `${formaterEuros(versementCentimes)} monteront au coffre${chequesCentimes > 0 ? ' (espèces et chèques)' : ''}. La CB n'y entre jamais.`}
+                  : `${formaterEuros(versementCentimes)} monteront au coffre${chequesCentimes > 0 ? ' (espèces et chèques)' : ''}. La CB n'y entre jamais.`}
             </p>
           </div>
         </aside>

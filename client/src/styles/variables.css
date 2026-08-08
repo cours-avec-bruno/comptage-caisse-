@@ -1,52 +1,196 @@
 /*
- * Variables de la maquette. Tout le reste du CSS s'y réfère : changer une
- * couleur ici la change partout.
+ * Fondations : couleurs, matières, typographie, rythme.
+ *
+ * Rien n'est au hasard ici. Chaque valeur est un choix qu'on doit pouvoir
+ * défendre, et tout le reste du CSS s'y réfère — changer une teinte ici la
+ * change partout.
  */
 
 :root {
-  /* Surfaces et traits */
-  --fond: #eef2f6;
+  color-scheme: light dark;
+
+  /* --- Matières ------------------------------------------------------
+     Le fond est ce sur quoi tout flotte. Les surfaces sont posées dessus.
+     Les matières translucides servent de chrome : le contenu passe dessous
+     au lieu de s'arrêter à une bande opaque. */
+  --fond: #f2f4f7;
+  --fond-motif: #e7ebf0;
   --surface: #ffffff;
-  --surface-douce: #f6f9fb;
-  --surface-creuse: #e9eef3;
-  --trait: #dce4ec;
-  --trait-fort: #c2ceda;
+  --surface-douce: #f7f9fb;
+  --surface-creuse: #eaeef3;
 
-  /* Encre */
-  --encre: #16222e;
-  --encre-douce: #5f7386;
-  --encre-effacee: #93a3b1;
+  /* Chrome translucide. Une matière plus dense sépare les régions de
+     structure ; une matière plus légère attire l'œil sur l'interactif.
+     On n'empile jamais deux matières légères : la lisibilité s'effondre. */
+  --matiere-chrome: rgb(252 253 254 / 0.72);
+  --matiere-chrome-bord: rgb(255 255 255 / 0.6);
+  --matiere-feuille: rgb(252 253 254 / 0.92);
+  --matiere-voile: rgb(12 20 30 / 0.42);
+  --flou-chrome: 20px;
+  --flou-feuille: 30px;
 
-  /* Accent : le bleu-vert d'un bassin */
-  --accent: #0b7285;
-  --accent-fort: #075a69;
-  --accent-clair: #e2f1f4;
-  --accent-trait: #9ccdd6;
+  --trait: #dfe5ec;
+  --trait-fort: #c5cfda;
 
-  /* États */
-  --succes: #157a5b;
-  --succes-clair: #e2f4ed;
-  --alerte: #ad2b1e;
-  --alerte-clair: #fdece9;
-  --alerte-trait: #f0b3aa;
-  --attention: #8a5a09;
-  --attention-clair: #fdf3e0;
-  --attention-trait: #edcf95;
+  /* --- Encre --------------------------------------------------------- */
+  --encre: #101822;
+  --encre-douce: #5a6b7d;
+  --encre-effacee: #8d9bab;
 
-  /* Géométrie */
-  --rayon-s: 6px;
-  --rayon-m: 10px;
-  --rayon-l: 14px;
-  --ombre-s: 0 1px 2px rgb(20 40 60 / 0.07);
-  --ombre-m: 0 2px 8px rgb(20 40 60 / 0.08);
-  --ombre-l: 0 12px 34px rgb(20 40 60 / 0.16);
+  /* --- Accent : le bleu-vert d'un bassin ----------------------------- */
+  --accent: #0a7285;
+  --accent-fort: #065968;
+  --accent-clair: #e0f0f3;
+  --accent-trait: #93c8d3;
 
-  /* Typographie */
-  --police: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
-  --police-chiffres: 'Segoe UI', system-ui, sans-serif;
+  /* --- États --------------------------------------------------------- */
+  --succes: #0f7a58;
+  --succes-clair: #e0f3ec;
+  --succes-trait: #a2d8c5;
+  --alerte: #b02a1c;
+  --alerte-clair: #fdeae7;
+  --alerte-trait: #efb1a7;
+  --attention: #85560a;
+  --attention-clair: #fdf2df;
+  --attention-trait: #ecce93;
 
-  /* Rythme */
-  --gouttiere: 20px;
-  --hauteur-barre: 58px;
+  /* --- Profondeur ----------------------------------------------------
+     Une grande surface se lit comme plus épaisse : flou plus fort et ombre
+     plus profonde qu'une petite pastille. */
+  --ombre-pose: 0 1px 2px rgb(12 24 38 / 0.06), 0 0 0 0.5px rgb(12 24 38 / 0.04);
+  --ombre-releve: 0 2px 6px rgb(12 24 38 / 0.07), 0 8px 24px rgb(12 24 38 / 0.06);
+  --ombre-flottante: 0 8px 20px rgb(12 24 38 / 0.12), 0 28px 64px rgb(12 24 38 / 0.2);
+
+  /* --- Géométrie ----------------------------------------------------- */
+  --rayon-xs: 0.375rem;
+  --rayon-s: 0.5rem;
+  --rayon-m: 0.75rem;
+  --rayon-l: 1rem;
+  --rayon-xl: 1.25rem;
+
+  /* --- Typographie ---------------------------------------------------
+     La police système embarque déjà l'optical sizing, les tables de
+     crénage et le réglage de lisibilité : on ne la remplace pas sans
+     raison. */
+  --police: system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Le tracking dépend de la taille : jamais une valeur unique.
+     Un grand texte a besoin d'un tracking négatif — ses lettres se lisent
+     trop espacées en grandissant ; un petit texte a besoin d'un peu d'air.
+     Le leading suit la taille en sens inverse : serré en grand, aéré en
+     petit. */
+  --taille-geante: clamp(2.75rem, 6vw, 4rem);
+  --tracking-geante: -0.035em;
+  --leading-geante: 1;
+
+  --taille-vedette: clamp(2rem, 3.4vw, 2.5rem);
+  --tracking-vedette: -0.028em;
+  --leading-vedette: 1.05;
+
+  --taille-titre: 1.3125rem;
+  --tracking-titre: -0.018em;
+  --leading-titre: 1.2;
+
+  --taille-section: 1.0625rem;
+  --tracking-section: -0.011em;
+  --leading-section: 1.3;
+
+  --taille-corps: 0.9375rem;
+  --tracking-corps: 0;
+  --leading-corps: 1.5;
+
+  --taille-appoint: 0.8125rem;
+  --tracking-appoint: 0.004em;
+  --leading-appoint: 1.45;
+
+  --taille-etiquette: 0.6875rem;
+  --tracking-etiquette: 0.06em;
+  --leading-etiquette: 1.3;
+
+  /* --- Rythme ---------------------------------------------------------
+     En rem, pas en px : quand l'utilisateur agrandit le texte de son
+     système, la mise en page grandit avec lui au lieu de se casser. */
+  --espace-1: 0.25rem;
+  --espace-2: 0.5rem;
+  --espace-3: 0.75rem;
+  --espace-4: 1rem;
+  --espace-5: 1.5rem;
+  --espace-6: 2rem;
+  --espace-7: 3rem;
+
+  --gouttiere: var(--espace-5);
+  --hauteur-barre: 3.5rem;
+  --largeur-contenu: 78rem;
+}
+
+/* --- Thème sombre ----------------------------------------------------
+   L'accueil peut être en lumière basse en fin de service. Les couleurs
+   s'adaptent au réglage du système. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #0d1117;
+    --fond-motif: #131a23;
+    --surface: #171e28;
+    --surface-douce: #1c242f;
+    --surface-creuse: #222b37;
+
+    --matiere-chrome: rgb(23 30 40 / 0.72);
+    --matiere-chrome-bord: rgb(255 255 255 / 0.09);
+    --matiere-feuille: rgb(26 34 44 / 0.94);
+    --matiere-voile: rgb(0 0 0 / 0.6);
+
+    --trait: #29323e;
+    --trait-fort: #3b4655;
+
+    --encre: #eef3f8;
+    --encre-douce: #a3b1c0;
+    --encre-effacee: #71808f;
+
+    --accent: #45b6cb;
+    --accent-fort: #6bcbdd;
+    --accent-clair: #123640;
+    --accent-trait: #2b6675;
+
+    --succes: #4cc79b;
+    --succes-clair: #10322a;
+    --succes-trait: #245c4a;
+    --alerte: #f08a7c;
+    --alerte-clair: #3a1a17;
+    --alerte-trait: #6d322b;
+    --attention: #e5b767;
+    --attention-clair: #33270f;
+    --attention-trait: #5f4a20;
+
+    --ombre-pose: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 0.5px rgb(255 255 255 / 0.05);
+    --ombre-releve: 0 2px 6px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+    --ombre-flottante: 0 8px 20px rgb(0 0 0 / 0.5), 0 28px 64px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* --- Transparence réduite --------------------------------------------
+   Les matières deviennent opaques, le flou disparaît. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --matiere-chrome: var(--surface);
+    --matiere-feuille: var(--surface);
+    --flou-chrome: 0px;
+    --flou-feuille: 0px;
+    --matiere-voile: rgb(16 26 38 / 0.55);
+  }
+}
+
+/* --- Contraste renforcé ----------------------------------------------
+   Fonds quasi opaques et bordures franches. */
+@media (prefers-contrast: more) {
+  :root {
+    --matiere-chrome: var(--surface);
+    --matiere-feuille: var(--surface);
+    --flou-chrome: 0px;
+    --flou-feuille: 0px;
+    --trait: var(--encre-douce);
+    --trait-fort: var(--encre);
+    --encre-douce: var(--encre);
+    --encre-effacee: var(--encre-douce);
+  }
 }

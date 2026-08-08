@@ -30,7 +30,9 @@ export function App() {
   const [coffre, setCoffre] = useState<EtatCoffre | null>(null);
   const [journal, setJournal] = useState<Journal | null>(null);
   const [agent, setAgent] = useState(() => localStorage.getItem(CLE_AGENT) ?? '');
-  const [parametresOuverts, setParametresOuverts] = useState(false);
+  const [origineParametres, setOrigineParametres] = useState<
+    { x: number; y: number } | null
+  >(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
   const charger = useCallback(async () => {
@@ -128,7 +130,13 @@ export function App() {
           <button
             type="button"
             className="bouton bouton--discret"
-            onClick={() => setParametresOuverts(true)}
+            onClick={(evenement) => {
+              const rect = evenement.currentTarget.getBoundingClientRect();
+              setOrigineParametres({
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+              });
+            }}
           >
             Paramètres
           </button>
@@ -166,11 +174,12 @@ export function App() {
         {onglet === 'journal' && <EcranJournal journal={journal} />}
       </main>
 
-      {parametresOuverts && (
+      {origineParametres && (
         <ModaleParametres
           fondDefautCentimes={parametres.fond_defaut_centimes}
           agents={parametres.agents}
-          onFermer={() => setParametresOuverts(false)}
+          origine={origineParametres}
+          onFermer={() => setOrigineParametres(null)}
           onEnregistre={charger}
         />
       )}

@@ -17,6 +17,7 @@ interface Props {
   agent: string;
   inventaire: LigneInventaire[];
   cheques: Cheques;
+  origine?: { x: number; y: number } | null;
   onFermer: () => void;
   onEnregistree: (montantCentimes: number) => void;
 }
@@ -33,11 +34,11 @@ export function ModaleSortie({
   agent,
   inventaire,
   cheques,
+  origine,
   onFermer,
   onEnregistree,
 }: Props) {
   const [quantites, setQuantites] = useState<Quantites>(quantitesVides);
-  const [chequesNombre, setChequesNombre] = useState(0);
   const [chequesCentimes, setChequesCentimes] = useState(0);
   const [motif, setMotif] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
@@ -58,16 +59,13 @@ export function ModaleSortie({
     .sort((a, b) => a - b);
 
   const motifRenseigne = motif.trim().length > 0;
-  const chequesIncomplets = (chequesNombre === 0) !== (chequesCentimes === 0);
-  const chequesTropNombreux =
-    chequesNombre > cheques.nombre || chequesCentimes > cheques.centimes;
+  const chequesTropEleves = chequesCentimes > cheques.centimes;
 
   const bloque =
     enCours ||
     total === 0 ||
     depassements.length > 0 ||
-    chequesIncomplets ||
-    chequesTropNombreux ||
+    chequesTropEleves ||
     !motifRenseigne ||
     !agent;
 
@@ -80,7 +78,6 @@ export function ModaleSortie({
         agent,
         motif: motif.trim(),
         detail,
-        cheques_nombre: chequesNombre,
         cheques_centimes: chequesCentimes,
       });
       onEnregistree(reponse.sortie.montant_centimes);
@@ -95,13 +92,14 @@ export function ModaleSortie({
     <Modale
       titre="Sortie du coffre"
       sousTitre="Saisissez les coupures réellement retirées, pas un montant."
+      origine={origine}
       onFermer={onFermer}
       pied={
         <>
-          <span className="modale__total">
+          <span className="feuille__total">
             À retirer <strong>{formaterEuros(total)}</strong>
           </span>
-          <div className="modale__actions">
+          <div className="feuille__actions">
             <button type="button" className="bouton" onClick={onFermer}>
               Annuler
             </button>
@@ -129,21 +127,11 @@ export function ModaleSortie({
         </div>
       )}
 
-      {chequesTropNombreux && (
+      {chequesTropEleves && (
         <div className="message message--erreur">
           <span>
-            Le coffre ne contient que <strong>{cheques.nombre} chèque
-            {cheques.nombre > 1 ? 's' : ''}</strong> pour {formaterEuros(cheques.centimes)}.
-          </span>
-        </div>
-      )}
-
-      {chequesIncomplets && (
-        <div className="message message--attention">
-          <span>
-            {chequesNombre === 0
-              ? 'Indiquez combien de chèques composent ce montant.'
-              : 'Indiquez le montant total des chèques sortis.'}
+            Le coffre ne contient que <strong>{formaterEuros(cheques.centimes)}</strong>{' '}
+            de chèques.
           </span>
         </div>
       )}
@@ -179,47 +167,27 @@ export function ModaleSortie({
         autoFocus
       />
 
-      {cheques.nombre > 0 && (
+      {cheques.centimes > 0 && (
         <div className="sortie-cheques">
           <div>
-            <label className="etiquette" htmlFor="sortie-cheques-montant">
+            <label className="etiquette" htmlFor="sortie-cheques">
               Chèques à sortir
             </label>
             <p className="sortie-cheques__stock">
-              Au coffre : {cheques.nombre} chèque{cheques.nombre > 1 ? 's' : ''} pour{' '}
-              {formaterEuros(cheques.centimes)}
+              Au coffre : {formaterEuros(cheques.centimes)}
             </p>
           </div>
 
-          <div className="saisie-cheques">
-            <input
-              className={`champ champ--nombre saisie-cheques__nombre${chequesTropNombreux ? ' champ--erreur' : ''}`}
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              aria-label="Nombre de chèques à sortir"
-              placeholder="0"
-              value={chequesNombre === 0 ? '' : String(chequesNombre)}
-              onFocus={(evenement) => evenement.currentTarget.select()}
-              onChange={(evenement) =>
-                setChequesNombre(Number(evenement.target.value.replace(/\D/g, '') || 0))
-              }
-            />
-            <span className="saisie-cheques__pour">pour</span>
-            <ChampEuros
-              id="sortie-cheques-montant"
-              valeur={chequesCentimes}
-              onChange={setChequesCentimes}
-            />
-          </div>
+          <ChampEuros
+            id="sortie-cheques"
+            valeur={chequesCentimes}
+            onChange={setChequesCentimes}
+          />
 
           <button
             type="button"
             className="bouton bouton--discret"
-            onClick={() => {
-              setChequesNombre(cheques.nombre);
-              setChequesCentimes(cheques.centimes);
-            }}
+            onClick={() => setChequesCentimes(cheques.centimes)}
           >
             Tout sortir
           </button>

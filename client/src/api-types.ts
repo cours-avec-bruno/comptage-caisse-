@@ -17,6 +17,7 @@ export interface LigneInventaire {
 }
 
 export interface Cheques {
+  /** Conservé pour l'historique déjà écrit ; plus renseigné à la saisie. */
   nombre: number;
   centimes: number;
 }
@@ -126,7 +127,6 @@ export interface ClientApi {
     detail: Record<number, number>;
     cb_centimes: number;
     fond_centimes: number;
-    cheques_nombre: number;
     cheques_centimes: number;
   }): Promise<ReponseValidation>;
   sortieCoffre(corps: {
@@ -134,7 +134,6 @@ export interface ClientApi {
     agent: string;
     motif: string;
     detail: Record<number, number>;
-    cheques_nombre: number;
     cheques_centimes: number;
   }): Promise<{ sortie: { id: number; montant_centimes: number }; coffre: EtatCoffre }>;
   sauvegardes(): Promise<{

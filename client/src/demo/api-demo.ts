@@ -171,15 +171,6 @@ export const apiDemo: ClientApi = {
         new ErreurApi('Rien à valider : ni espèces comptées, ni recette CB, ni chèque.'),
       );
     }
-    if ((corps.cheques_nombre === 0) !== (corps.cheques_centimes === 0)) {
-      return Promise.reject(
-        new ErreurApi(
-          corps.cheques_nombre === 0
-            ? 'Indiquez combien de chèques composent ce montant.'
-            : 'Indiquez le montant total des chèques.',
-        ),
-      );
-    }
     if (!magasin.agents.includes(corps.agent)) {
       return Promise.reject(
         new ErreurApi(`Initiales inconnues : ${corps.agent}.`),
@@ -201,13 +192,10 @@ export const apiDemo: ClientApi = {
       );
     }
     const stockCheques = magasin.cheques();
-    if (
-      corps.cheques_nombre > stockCheques.nombre ||
-      corps.cheques_centimes > stockCheques.centimes
-    ) {
+    if (corps.cheques_centimes > stockCheques.centimes) {
       return Promise.reject(
         new ErreurApi(
-          `Pas autant de chèques au coffre : disponible ${stockCheques.nombre} pour ${stockCheques.centimes} centimes.`,
+          `Pas autant de chèques au coffre : disponible ${stockCheques.centimes} centimes.`,
         ),
       );
     }

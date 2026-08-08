@@ -30,8 +30,8 @@ Sous Linux ou macOS, `./demarrer-caisse.sh` fait la même chose.
 quantité, `Entrée` **ou la flèche du bas** passe à la coupure suivante
 (`Maj`+`Entrée` ou la flèche du haut revient en arrière), et le champ se
 sélectionne tout seul : on tape par-dessus sans avoir à effacer. Après la
-dernière pièce on enchaîne sur la recette CB, puis sur les chèques (leur nombre,
-puis leur montant total). Le panneau de droite recalcule tout en direct.
+dernière pièce on enchaîne sur la recette CB, puis sur le montant des chèques.
+Le panneau de droite recalcule tout en direct.
 *Valider et verser au coffre* enregistre la journée et fait monter les espèces
 et les chèques au coffre.
 
@@ -41,7 +41,8 @@ détail* déplie les deux caisses côte à côte, coupure par coupure, les coupu
 épuisées comprises. *Sortie du coffre* sert à sortir de l'argent : remise en
 banque, appro monnaie, achat. La sortie se saisit **par coupures, jamais par
 montant** ; sinon l'inventaire devient faux dès la première remise en banque.
-Les chèques sortent avec, et un bouton *Tout sortir* les prend d'un coup.
+Les chèques sortent avec, et un bouton *Tout sortir* les prend d'un coup. La
+feuille se ferme à `Échap`, au bouton *Annuler*, ou en la tirant vers le bas.
 
 **Journal** — une ligne par journée validée, de la plus récente à la plus
 ancienne, avec le cumul en bas et les boutons d'export.
@@ -71,7 +72,7 @@ Le coffre contient une caisse grise et une caisse rouge. La règle de rangement 
 - dès qu'on a **10 billets d'une même valeur**, on en fait une liasse qui part
   dans la **caisse rouge** — le reste de la pile demeure en grise ;
 - les **billets de 50 €** et les **chèques** vont en caisse rouge quel que soit
-  leur nombre ;
+  leur montant ;
 - les **pièces** restent en caisse grise.
 
 L'application **calcule** ce rangement, elle ne le fait pas saisir. C'est la même
@@ -116,6 +117,31 @@ npm start          # sert l'API et le front buildé sur le port 4173
 | `server/` | Express, SQLite (`better-sqlite3`), calculs, export, sauvegarde |
 | `client/` | Vite + React + TypeScript, CSS écrit à la main |
 
+### Interface
+
+L'interface suit les principes de conception d'Apple (*Designing Fluid
+Interfaces*), traduits pour le web :
+
+- **Ressorts, pas de durées fixes.** `client/src/animation/ressort.ts` est un
+  petit moteur maison (~90 lignes, aucune dépendance) piloté par
+  `requestAnimationFrame`. Deux paramètres — amortissement et réponse — plutôt
+  que masse/raideur/frottement. Une seule boucle pour toute l'application.
+- **Tout est interruptible.** Une animation ne verrouille jamais la saisie, et
+  on peut saisir un élément en plein vol : le ressort repart de sa position et
+  de sa vitesse réelles, pas de sa cible.
+- **La vitesse du geste passe dans l'animation.** Au relâchement, on projette
+  où le geste finirait (décroissance exponentielle, `projeter()`) et on décide
+  à partir de là — pas depuis le point de relâchement.
+- **Résistance progressive aux limites** (`elastique()`) plutôt qu'un arrêt net.
+- **Retour visuel à l'appui**, pas au relâchement.
+- **Matières translucides** (`backdrop-filter`) pour le chrome, le contenu passe
+  dessous. Bord de défilement en dégradé plutôt qu'un filet de 1 px.
+- **Les feuilles émergent de leur déclencheur** et y retournent.
+- **Tracking et leading par taille**, jamais une valeur unique. Espacements en
+  `rem` : agrandir le texte du système agrandit la mise en page.
+- **Thème sombre**, et prise en charge de `prefers-reduced-motion`,
+  `prefers-reduced-transparency` et `prefers-contrast`.
+
 ### Règles de code, non négociables
 
 - **Tous les montants sont des entiers en centimes.** Aucun flottant : ni en
@@ -135,8 +161,9 @@ coupure) ; `mouvements_coffre` (`versement` ou `sortie`) et `mouvement_detail`
 (quantité positive pour un versement, négative pour une sortie).
 
 Les chèques ne sont pas des coupures : `comptages` et `mouvements_coffre` portent
-un `cheques_nombre` et un `cheques_centimes`, signés comme les quantités. Le stock
-de chèques au coffre est leur somme — jamais une colonne.
+un `cheques_centimes`, signé comme les quantités. Le stock de chèques au coffre est
+leur somme — jamais une colonne. (`cheques_nombre` existe encore mais n'est plus
+renseigné : les migrations sont append-only et l'historique déjà écrit la porte.)
 
 La répartition entre caisse grise et caisse rouge est une fonction pure de
 `shared/index.js` (`repartirCoffre`), partagée par l'API et le front pour que les
