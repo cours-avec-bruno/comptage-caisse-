@@ -27,17 +27,21 @@ Sous Linux ou macOS, `./demarrer-caisse.sh` fait la même chose.
 ## Les trois écrans
 
 **Comptage du jour** — une ligne par coupure, billets puis pièces. On tape la
-quantité, `Entrée` passe à la coupure suivante (`Maj`+`Entrée` revient en
-arrière), et le champ se sélectionne tout seul : on tape par-dessus sans avoir à
-effacer. Après la dernière pièce, `Entrée` tombe sur la recette CB. Le panneau de
-droite recalcule tout en direct. *Valider et verser au coffre* enregistre la
-journée et fait monter les espèces au coffre.
+quantité, `Entrée` **ou la flèche du bas** passe à la coupure suivante
+(`Maj`+`Entrée` ou la flèche du haut revient en arrière), et le champ se
+sélectionne tout seul : on tape par-dessus sans avoir à effacer. Après la
+dernière pièce on enchaîne sur la recette CB, puis sur les chèques (leur nombre,
+puis leur montant total). Le panneau de droite recalcule tout en direct.
+*Valider et verser au coffre* enregistre la journée et fait monter les espèces
+et les chèques au coffre.
 
 **Coffre** — un seul chiffre, celui qu'on doit retrouver en ouvrant la porte.
-*Voir le détail* déplie l'inventaire coupure par coupure, les coupures épuisées
-comprises. *Sortie du coffre* sert à sortir de l'argent : remise en banque, appro
-monnaie, achat. La sortie se saisit **par coupures, jamais par montant** ; sinon
-l'inventaire devient faux dès la première remise en banque.
+Dessous, deux pastilles rappellent ce que contient chaque caisse. *Voir le
+détail* déplie les deux caisses côte à côte, coupure par coupure, les coupures
+épuisées comprises. *Sortie du coffre* sert à sortir de l'argent : remise en
+banque, appro monnaie, achat. La sortie se saisit **par coupures, jamais par
+montant** ; sinon l'inventaire devient faux dès la première remise en banque.
+Les chèques sortent avec, et un bouton *Tout sortir* les prend d'un coup.
 
 **Journal** — une ligne par journée validée, de la plus récente à la plus
 ancienne, avec le cumul en bas et les boutons d'export.
@@ -49,7 +53,8 @@ ancienne, avec le cumul en bas et les boutons d'export.
   opposable en cas de litige sur un écart. La base elle-même refuse toute
   modification, pas seulement l'interface.
 - **La CB n'entre pas dans le coffre.** Elle compte dans la recette et dans le
-  journal, jamais dans le solde.
+  journal, jamais dans le solde. **Les chèques, eux, y entrent** : ils sont
+  physiquement au coffre, donc ils comptent dans le solde.
 - **Valider une journée verse la totalité du comptage au coffre**, fond de caisse
   compris. *(À confirmer avec le responsable : si le fond reste physiquement dans
   la caisse le soir, il faudra saisir quelles coupures y restent, et la
@@ -57,6 +62,22 @@ ancienne, avec le cumul en bas et les boutons d'export.
 - Chaque opération est enregistrée avec les initiales sélectionnées en haut à
   droite. Il n'y a ni compte ni mot de passe : c'est une signature, pas une
   sécurité.
+
+### Les deux caisses du coffre
+
+Le coffre contient une caisse grise et une caisse rouge. La règle de rangement :
+
+- par défaut, tout va dans la **caisse grise** ;
+- dès qu'on a **10 billets d'une même valeur**, on en fait une liasse qui part
+  dans la **caisse rouge** — le reste de la pile demeure en grise ;
+- les **billets de 50 €** et les **chèques** vont en caisse rouge quel que soit
+  leur nombre ;
+- les **pièces** restent en caisse grise.
+
+L'application **calcule** ce rangement, elle ne le fait pas saisir. C'est la même
+raison que pour le solde : un rangement stocké finirait par diverger de
+l'inventaire. Un versement ou une sortie réajuste donc le rangement tout seul, et
+l'écran Coffre dit ce qui doit se trouver dans chaque caisse.
 
 ## Sauvegarde
 
@@ -91,7 +112,7 @@ npm start          # sert l'API et le front buildé sur le port 4173
 
 | Dossier   | Rôle |
 | --------- | ---- |
-| `shared/` | Les 12 coupures et le formatage euro, partagés par l'API et le front |
+| `shared/` | Les 12 coupures, le formatage euro et la règle de rangement du coffre, partagés par l'API et le front |
 | `server/` | Express, SQLite (`better-sqlite3`), calculs, export, sauvegarde |
 | `client/` | Vite + React + TypeScript, CSS écrit à la main |
 
@@ -113,12 +134,21 @@ npm start          # sert l'API et le front buildé sur le port 4173
 coupure) ; `mouvements_coffre` (`versement` ou `sortie`) et `mouvement_detail`
 (quantité positive pour un versement, négative pour une sortie).
 
+Les chèques ne sont pas des coupures : `comptages` et `mouvements_coffre` portent
+un `cheques_nombre` et un `cheques_centimes`, signés comme les quantités. Le stock
+de chèques au coffre est leur somme — jamais une colonne.
+
+La répartition entre caisse grise et caisse rouge est une fonction pure de
+`shared/index.js` (`repartirCoffre`), partagée par l'API et le front pour que les
+deux appliquent exactement la même règle.
+
 L'inventaire du coffre est la somme de `mouvement_detail`. Il n'existe pas
 ailleurs.
 
-`mouvements_coffre` porte un `contenant_id` figé à `1`. Il ne sert à rien
-aujourd'hui, mais il évite une migration douloureuse le jour où il y aura
-plusieurs caisses à compter séparément.
+`mouvements_coffre` porte un `contenant_id` figé à `1`. Il ne désigne pas les
+caisses grise et rouge — celles-ci sont un rangement calculé à l'intérieur d'un
+même coffre. Il est là pour le jour où il y aura **plusieurs coffres** à compter
+séparément, et évite alors une migration douloureuse.
 
 Les migrations sont dans `server/src/db/migrations.js` et s'appliquent au
 démarrage. Ajouter une migration = pousser une entrée à la fin du tableau, jamais

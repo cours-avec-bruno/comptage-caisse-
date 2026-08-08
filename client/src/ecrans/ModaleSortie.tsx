@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { api, ErreurApi, type LigneInventaire } from '../api';
+import { api, ErreurApi, type Cheques, type LigneInventaire } from '../api';
 import {
   GrilleSaisie,
   detailPourApi,
@@ -7,6 +7,7 @@ import {
   totalSaisie,
   type Quantites,
 } from '../composants/GrilleSaisie';
+import { ChampEuros } from '../composants/ChampEuros';
 import { Modale } from '../composants/Modale';
 import { formaterEuros } from '../format';
 import { libelleCourt } from '../coupures';
@@ -15,6 +16,7 @@ interface Props {
   date: string;
   agent: string;
   inventaire: LigneInventaire[];
+  cheques: Cheques;
   onFermer: () => void;
   onEnregistree: (montantCentimes: number) => void;
 }
@@ -30,10 +32,13 @@ export function ModaleSortie({
   date,
   agent,
   inventaire,
+  cheques,
   onFermer,
   onEnregistree,
 }: Props) {
   const [quantites, setQuantites] = useState<Quantites>(quantitesVides);
+  const [chequesNombre, setChequesNombre] = useState(0);
+  const [chequesCentimes, setChequesCentimes] = useState(0);
   const [motif, setMotif] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -45,7 +50,7 @@ export function ModaleSortie({
   ) as Record<number, number>;
 
   const detail = detailPourApi(quantites);
-  const total = totalSaisie(quantites);
+  const total = totalSaisie(quantites) + chequesCentimes;
 
   const depassements = Object.entries(detail)
     .filter(([coupure, quantite]) => quantite > (stock[Number(coupure)] ?? 0))
@@ -53,8 +58,18 @@ export function ModaleSortie({
     .sort((a, b) => a - b);
 
   const motifRenseigne = motif.trim().length > 0;
+  const chequesIncomplets = (chequesNombre === 0) !== (chequesCentimes === 0);
+  const chequesTropNombreux =
+    chequesNombre > cheques.nombre || chequesCentimes > cheques.centimes;
+
   const bloque =
-    enCours || total === 0 || depassements.length > 0 || !motifRenseigne || !agent;
+    enCours ||
+    total === 0 ||
+    depassements.length > 0 ||
+    chequesIncomplets ||
+    chequesTropNombreux ||
+    !motifRenseigne ||
+    !agent;
 
   const enregistrer = async () => {
     setErreur(null);
@@ -65,6 +80,8 @@ export function ModaleSortie({
         agent,
         motif: motif.trim(),
         detail,
+        cheques_nombre: chequesNombre,
+        cheques_centimes: chequesCentimes,
       });
       onEnregistree(reponse.sortie.montant_centimes);
     } catch (probleme) {
@@ -112,6 +129,25 @@ export function ModaleSortie({
         </div>
       )}
 
+      {chequesTropNombreux && (
+        <div className="message message--erreur">
+          <span>
+            Le coffre ne contient que <strong>{cheques.nombre} chèque
+            {cheques.nombre > 1 ? 's' : ''}</strong> pour {formaterEuros(cheques.centimes)}.
+          </span>
+        </div>
+      )}
+
+      {chequesIncomplets && (
+        <div className="message message--attention">
+          <span>
+            {chequesNombre === 0
+              ? 'Indiquez combien de chèques composent ce montant.'
+              : 'Indiquez le montant total des chèques sortis.'}
+          </span>
+        </div>
+      )}
+
       <div>
         <label className="etiquette" htmlFor="motif">
           Motif de la sortie (obligatoire)
@@ -142,6 +178,53 @@ export function ModaleSortie({
         compact
         autoFocus
       />
+
+      {cheques.nombre > 0 && (
+        <div className="sortie-cheques">
+          <div>
+            <label className="etiquette" htmlFor="sortie-cheques-montant">
+              Chèques à sortir
+            </label>
+            <p className="sortie-cheques__stock">
+              Au coffre : {cheques.nombre} chèque{cheques.nombre > 1 ? 's' : ''} pour{' '}
+              {formaterEuros(cheques.centimes)}
+            </p>
+          </div>
+
+          <div className="saisie-cheques">
+            <input
+              className={`champ champ--nombre saisie-cheques__nombre${chequesTropNombreux ? ' champ--erreur' : ''}`}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              aria-label="Nombre de chèques à sortir"
+              placeholder="0"
+              value={chequesNombre === 0 ? '' : String(chequesNombre)}
+              onFocus={(evenement) => evenement.currentTarget.select()}
+              onChange={(evenement) =>
+                setChequesNombre(Number(evenement.target.value.replace(/\D/g, '') || 0))
+              }
+            />
+            <span className="saisie-cheques__pour">pour</span>
+            <ChampEuros
+              id="sortie-cheques-montant"
+              valeur={chequesCentimes}
+              onChange={setChequesCentimes}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="bouton bouton--discret"
+            onClick={() => {
+              setChequesNombre(cheques.nombre);
+              setChequesCentimes(cheques.centimes);
+            }}
+          >
+            Tout sortir
+          </button>
+        </div>
+      )}
     </Modale>
   );
 }

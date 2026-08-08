@@ -58,12 +58,25 @@ export function GrilleSaisie({
   const total = totalSaisie(quantites);
   const totalCoupures = nombreCoupures(quantites);
 
-  /** Entrée descend d'une ligne ; Maj+Entrée remonte. */
+  /**
+   * Descendre d'une coupure : Entrée ou flèche du bas.
+   * Remonter : Maj+Entrée ou flèche du haut.
+   *
+   * Les deux gestes coexistent parce qu'on ne compte pas tous de la même
+   * façon — certains enchaînent à l'aveugle avec Entrée, d'autres préfèrent
+   * viser une ligne à la flèche.
+   */
   const surTouche = (evenement: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (evenement.key !== 'Enter') return;
+    const versLeBas =
+      evenement.key === 'ArrowDown' || (evenement.key === 'Enter' && !evenement.shiftKey);
+    const versLeHaut =
+      evenement.key === 'ArrowUp' || (evenement.key === 'Enter' && evenement.shiftKey);
+
+    if (!versLeBas && !versLeHaut) return;
+    // Sur un champ texte, les flèches déplacent le curseur : on reprend la main.
     evenement.preventDefault();
 
-    const pas = evenement.shiftKey ? -1 : 1;
+    const pas = versLeBas ? 1 : -1;
     const suivant = champs.current[index + pas];
 
     if (suivant) {
@@ -169,8 +182,9 @@ export function GrilleSaisie({
       </div>
 
       <p className="grille__aide">
-        <kbd>Entrée</kbd> passe à la coupure suivante, <kbd>Maj</kbd>+<kbd>Entrée</kbd>{' '}
-        revient en arrière. Le champ se sélectionne tout seul : tapez par-dessus.
+        <kbd>Entrée</kbd> ou <kbd>↓</kbd> passe à la coupure suivante,{' '}
+        <kbd>Maj</kbd>+<kbd>Entrée</kbd> ou <kbd>↑</kbd> revient en arrière. Le champ
+        se sélectionne tout seul : tapez par-dessus.
       </p>
     </div>
   );

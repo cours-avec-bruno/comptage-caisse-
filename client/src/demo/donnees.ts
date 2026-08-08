@@ -19,6 +19,8 @@ export interface Mouvement {
   comptage_id: number | null;
   cree_le: string;
   detail: { coupure_centimes: number; quantite: number }[];
+  cheques_nombre: number;
+  cheques_centimes: number;
 }
 
 export interface Comptage extends LigneJournal {
@@ -64,10 +66,16 @@ export class MagasinDemo {
 
   /** Quelques journées plausibles, pour que les écrans ne soient pas vides. */
   private semer() {
-    const journees: { jours: number; agent: string; cb: number; detail: Record<number, number> }[] = [
-      { jours: 4, agent: 'ML', cb: 48_250, detail: { 5000: 3, 2000: 6, 1000: 4, 500: 7, 200: 22, 100: 31, 50: 14, 20: 25, 10: 18, 5: 12 } },
+    const journees: {
+      jours: number;
+      agent: string;
+      cb: number;
+      detail: Record<number, number>;
+      cheques?: { nombre: number; centimes: number };
+    }[] = [
+      { jours: 4, agent: 'ML', cb: 48_250, cheques: { nombre: 2, centimes: 4_400 }, detail: { 5000: 3, 2000: 6, 1000: 4, 500: 7, 200: 22, 100: 31, 50: 14, 20: 25, 10: 18, 5: 12 } },
       { jours: 3, agent: 'BR', cb: 33_900, detail: { 5000: 2, 2000: 4, 1000: 9, 500: 5, 200: 18, 100: 24, 50: 11, 20: 8 } },
-      { jours: 2, agent: 'JD', cb: 51_400, detail: { 5000: 4, 2000: 7, 1000: 6, 500: 9, 200: 27, 100: 19, 50: 22, 20: 16, 10: 9 } },
+      { jours: 2, agent: 'JD', cb: 51_400, cheques: { nombre: 3, centimes: 9_150 }, detail: { 5000: 4, 2000: 7, 1000: 6, 500: 9, 200: 27, 100: 19, 50: 22, 20: 16, 10: 9 } },
       { jours: 1, agent: 'BR', cb: 27_650, detail: { 5000: 1, 2000: 5, 1000: 8, 500: 4, 200: 15, 100: 28, 50: 17, 20: 12, 5: 20 } },
     ];
 
@@ -78,6 +86,8 @@ export class MagasinDemo {
         detail: journee.detail,
         cb_centimes: journee.cb,
         fond_centimes: this.fondDefautCentimes,
+        cheques_nombre: journee.cheques?.nombre ?? 0,
+        cheques_centimes: journee.cheques?.centimes ?? 0,
       });
     }
 
@@ -88,6 +98,8 @@ export class MagasinDemo {
       agent: 'ML',
       motif: 'Remise en banque',
       detail: { 5000: 5, 2000: 10 },
+      cheques_nombre: 0,
+      cheques_centimes: 0,
     });
   }
 
@@ -113,8 +125,23 @@ export class MagasinDemo {
   }
 
   /** Jamais stocké, toujours recalculé — comme sur le vrai serveur. */
-  solde(): number {
+  especes(): number {
     return this.inventaire().reduce((somme, l) => somme + l.valeur_centimes, 0);
+  }
+
+  cheques(): { nombre: number; centimes: number } {
+    return this.mouvements.reduce(
+      (somme, m) => ({
+        nombre: somme.nombre + m.cheques_nombre,
+        centimes: somme.centimes + m.cheques_centimes,
+      }),
+      { nombre: 0, centimes: 0 },
+    );
+  }
+
+  /** Les chèques sont physiquement au coffre : ils comptent dans le solde. */
+  solde(): number {
+    return this.especes() + this.cheques().centimes;
   }
 
   dernierVersement() {
@@ -137,6 +164,8 @@ export class MagasinDemo {
     detail: Record<number, number>;
     cb_centimes: number;
     fond_centimes: number;
+    cheques_nombre: number;
+    cheques_centimes: number;
   }): Comptage {
     const detail = Object.entries(corps.detail)
       .map(([coupure, quantite]) => ({
@@ -156,15 +185,18 @@ export class MagasinDemo {
       especes_centimes: especes,
       cb_centimes: corps.cb_centimes,
       fond_centimes: corps.fond_centimes,
+      cheques_nombre: corps.cheques_nombre,
+      cheques_centimes: corps.cheques_centimes,
       recette_especes_centimes: recetteEspeces,
-      recette_centimes: recetteEspeces + corps.cb_centimes,
+      recette_centimes:
+        recetteEspeces + corps.cb_centimes + corps.cheques_centimes,
       cree_le: horodatage(),
       detail,
     };
     this.prochainComptage += 1;
     this.comptages.push(comptage);
 
-    if (detail.length > 0) {
+    if (detail.length > 0 || corps.cheques_centimes > 0) {
       this.mouvements.push({
         id: this.prochainMouvement,
         date: corps.date,
@@ -174,6 +206,8 @@ export class MagasinDemo {
         comptage_id: comptage.id,
         cree_le: horodatage(),
         detail,
+        cheques_nombre: corps.cheques_nombre,
+        cheques_centimes: corps.cheques_centimes,
       });
       this.prochainMouvement += 1;
     }
@@ -190,6 +224,8 @@ export class MagasinDemo {
     agent: string;
     motif: string;
     detail: Record<number, number>;
+    cheques_nombre: number;
+    cheques_centimes: number;
   }): { id: number; montant_centimes: number } {
     const stock = new Map(
       this.inventaire().map((l) => [l.coupure_centimes, l.quantite]),
@@ -239,9 +275,14 @@ export class MagasinDemo {
         coupure_centimes: l.coupure_centimes,
         quantite: -l.quantite,
       })),
+      cheques_nombre: -corps.cheques_nombre,
+      cheques_centimes: -corps.cheques_centimes,
     });
 
-    return { id, montant_centimes: totalCentimes(demande) };
+    return {
+      id,
+      montant_centimes: totalCentimes(demande) + corps.cheques_centimes,
+    };
   }
 
   journal() {
@@ -253,6 +294,8 @@ export class MagasinDemo {
       (somme, l) => ({
         especes_centimes: somme.especes_centimes + l.especes_centimes,
         cb_centimes: somme.cb_centimes + l.cb_centimes,
+        cheques_nombre: somme.cheques_nombre + l.cheques_nombre,
+        cheques_centimes: somme.cheques_centimes + l.cheques_centimes,
         recette_especes_centimes:
           somme.recette_especes_centimes + l.recette_especes_centimes,
         recette_centimes: somme.recette_centimes + l.recette_centimes,
@@ -260,6 +303,8 @@ export class MagasinDemo {
       {
         especes_centimes: 0,
         cb_centimes: 0,
+        cheques_nombre: 0,
+        cheques_centimes: 0,
         recette_especes_centimes: 0,
         recette_centimes: 0,
       },

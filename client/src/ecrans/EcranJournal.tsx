@@ -54,6 +54,7 @@ export function EcranJournal({ journal }: Props) {
               <th className="col-nombre">Fond</th>
               <th className="col-nombre">Recette espèces</th>
               <th className="col-nombre">CB</th>
+              <th className="col-nombre">Chèques</th>
               <th className="col-nombre">Recette du jour</th>
             </tr>
           </thead>
@@ -61,7 +62,7 @@ export function EcranJournal({ journal }: Props) {
           <tbody>
             {lignes.length === 0 ? (
               <tr>
-                <td className="tableau__vide" colSpan={7}>
+                <td className="tableau__vide" colSpan={8}>
                   Le journal se remplira à la première journée validée.
                 </td>
               </tr>
@@ -78,6 +79,18 @@ export function EcranJournal({ journal }: Props) {
                     {montant(ligne.recette_especes_centimes)}
                   </td>
                   <td className="col-nombre">{formaterEuros(ligne.cb_centimes)}</td>
+                  <td className="col-nombre">
+                    {ligne.cheques_nombre > 0 ? (
+                      <>
+                        {formaterEuros(ligne.cheques_centimes)}
+                        <span className="cellule-appoint">
+                          {ligne.cheques_nombre} chq
+                        </span>
+                      </>
+                    ) : (
+                      <span className="montant-nul">—</span>
+                    )}
+                  </td>
                   <td className="col-nombre">{montant(ligne.recette_centimes)}</td>
                 </tr>
               ))
@@ -94,6 +107,12 @@ export function EcranJournal({ journal }: Props) {
                   {montant(cumul.recette_especes_centimes)}
                 </td>
                 <td className="col-nombre">{formaterEuros(cumul.cb_centimes)}</td>
+                <td className="col-nombre">
+                  {formaterEuros(cumul.cheques_centimes)}
+                  {cumul.cheques_nombre > 0 && (
+                    <span className="cellule-appoint">{cumul.cheques_nombre} chq</span>
+                  )}
+                </td>
                 <td className="col-nombre">{montant(cumul.recette_centimes)}</td>
               </tr>
             </tfoot>

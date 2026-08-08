@@ -106,6 +106,21 @@ export const MIGRATIONS = [
         BEGIN SELECT RAISE(ABORT, 'Le détail d''un mouvement ne se supprime pas'); END;
     `,
   },
+  {
+    nom: '003-cheques',
+    sql: `
+      -- Les chèques entrent au coffre (caisse rouge), contrairement à la CB.
+      -- Ils ne sont pas des coupures : on garde le nombre et le montant total,
+      -- ce qui suffit à vérifier la caisse rouge en ouvrant la porte.
+      ALTER TABLE comptages ADD COLUMN cheques_nombre   INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE comptages ADD COLUMN cheques_centimes INTEGER NOT NULL DEFAULT 0;
+
+      -- Signés comme les quantités de coupures : positifs pour un versement,
+      -- négatifs pour une sortie. Le stock de chèques se recalcule par somme.
+      ALTER TABLE mouvements_coffre ADD COLUMN cheques_nombre   INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE mouvements_coffre ADD COLUMN cheques_centimes INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 /**
