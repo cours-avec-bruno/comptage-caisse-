@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, ErreurApi, type EtatCoffre, type Journal, type Parametres } from './api';
+import {
+  api,
+  ErreurApi,
+  MODE_DEMO,
+  type EtatCoffre,
+  type Journal,
+  type Parametres,
+} from './api';
 import { EcranCoffre } from './ecrans/EcranCoffre';
 import { EcranComptage } from './ecrans/EcranComptage';
 import { EcranJournal } from './ecrans/EcranJournal';
@@ -70,6 +77,16 @@ export function App() {
 
   return (
     <div className="app">
+      {MODE_DEMO && (
+        <div className="bandeau-demo">
+          <strong>Démonstration</strong>
+          <span>
+            Chiffres inventés, rien n'est enregistré : tout repart à zéro au
+            rechargement de la page. Ce n'est pas la caisse de la piscine.
+          </span>
+        </div>
+      )}
+
       <header className="barre">
         <div className="barre__marque">
           Caisse <span>accueil piscine</span>

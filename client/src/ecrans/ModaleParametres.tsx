@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, ErreurApi } from '../api';
+import { api, ErreurApi, MODE_DEMO } from '../api';
 import { ChampEuros } from '../composants/ChampEuros';
 import { Modale } from '../composants/Modale';
 
@@ -112,10 +112,20 @@ export function ModaleParametres({
       <div>
         <span className="etiquette">Sauvegardes automatiques</span>
         <p className="panneau__note" style={{ textAlign: 'left', margin: '0 0 8px' }}>
-          Une copie de la base est écrite dans <code>{dossier || 'sauvegardes/'}</code> à
-          chaque journée validée. Les 30 dernières sont conservées.
+          {MODE_DEMO ? (
+            <>
+              Inactives en démonstration : il n'y a pas de base de données à copier.
+              Dans l'application installée, une copie est écrite à chaque journée
+              validée et les 30 dernières sont conservées.
+            </>
+          ) : (
+            <>
+              Une copie de la base est écrite dans <code>{dossier || 'sauvegardes/'}</code>{' '}
+              à chaque journée validée. Les 30 dernières sont conservées.
+            </>
+          )}
         </p>
-        {sauvegardes.length === 0 ? (
+        {MODE_DEMO ? null : sauvegardes.length === 0 ? (
           <p className="panneau__note" style={{ textAlign: 'left' }}>
             Aucune copie pour le moment.
           </p>
@@ -129,15 +139,16 @@ export function ModaleParametres({
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <a className="bouton" href="/api/export/comptages.csv" download>
-          Export journal
-        </a>
-        <a className="bouton" href="/api/export/mouvements.csv" download>
-          Export mouvements
-        </a>
-        <a className="bouton" href="/api/export/inventaire.csv" download>
-          Export inventaire
-        </a>
+        {(['comptages', 'mouvements', 'inventaire'] as const).map((nom) => (
+          <button
+            key={nom}
+            type="button"
+            className="bouton"
+            onClick={() => void api.exporter(nom)}
+          >
+            Export {nom === 'comptages' ? 'journal' : nom}
+          </button>
+        ))}
       </div>
     </Modale>
   );

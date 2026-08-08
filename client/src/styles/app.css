@@ -6,6 +6,28 @@
   min-height: 100%;
 }
 
+/* Version publiée en démonstration. Le bandeau est volontairement voyant et
+   non masquable : personne ne doit croire compter une vraie caisse. */
+.bandeau-demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 10px;
+  padding: 9px 18px;
+  background: var(--attention-clair);
+  border-bottom: 1px solid var(--attention-trait);
+  color: var(--attention);
+  font-size: 13.5px;
+  text-align: center;
+}
+
+.bandeau-demo strong {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
 .barre {
   position: sticky;
   top: 0;
