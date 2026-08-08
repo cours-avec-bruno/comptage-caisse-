@@ -3,6 +3,8 @@
  * reconstruit à chaque appel depuis `mouvement_detail`.
  */
 
+import { repartirCoffre } from 'caisse-partage';
+
 import {
   construireInventaire,
   coupuresInsuffisantes,
@@ -37,11 +39,33 @@ export function inventaire(db, contenantId = CONTENANT_PAR_DEFAUT) {
 }
 
 /**
+ * Chèques présents au coffre. Comme le reste, jamais stocké : somme des
+ * mouvements, positifs à l'entrée, négatifs à la sortie.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {number} [contenantId]
+ * @returns {{nombre: number, centimes: number}}
+ */
+export function chequesAuCoffre(db, contenantId = CONTENANT_PAR_DEFAUT) {
+  const ligne = db
+    .prepare(
+      `SELECT COALESCE(SUM(cheques_nombre), 0)   AS nombre,
+              COALESCE(SUM(cheques_centimes), 0) AS centimes
+         FROM mouvements_coffre
+        WHERE contenant_id = ?`,
+    )
+    .get(contenantId);
+
+  return { nombre: ligne.nombre, centimes: ligne.centimes };
+}
+
+/**
  * @param {import('better-sqlite3').Database} db
  * @param {number} [contenantId]
  */
 export function etatCoffre(db, contenantId = CONTENANT_PAR_DEFAUT) {
   const detail = inventaire(db, contenantId);
+  const cheques = chequesAuCoffre(db, contenantId);
   const dernierVersement = db
     .prepare(
       `SELECT date, agent, cree_le
@@ -53,9 +77,14 @@ export function etatCoffre(db, contenantId = CONTENANT_PAR_DEFAUT) {
     .get(contenantId);
 
   return {
-    solde_centimes: soldeInventaire(detail),
+    // Les chèques sont physiquement dans le coffre : ils comptent dans le
+    // solde, qui doit rester vérifiable en ouvrant la porte.
+    solde_centimes: soldeInventaire(detail) + cheques.centimes,
+    especes_centimes: soldeInventaire(detail),
+    cheques,
     dernier_versement: dernierVersement ?? null,
     inventaire: detail,
+    repartition: repartirCoffre(detail, cheques),
   };
 }
 
@@ -69,6 +98,7 @@ export function etatCoffre(db, contenantId = CONTENANT_PAR_DEFAUT) {
  * @param {'versement'|'sortie'} mouvement.type
  * @param {string} mouvement.motif
  * @param {Map<number, number>} mouvement.quantites signées
+ * @param {{nombre: number, centimes: number}} [mouvement.cheques] signés
  * @param {number|null} [mouvement.comptageId]
  * @param {number} [mouvement.contenantId]
  * @returns {number} id du mouvement créé
@@ -80,6 +110,7 @@ export function insererMouvement(db, mouvement) {
     type,
     motif,
     quantites,
+    cheques = { nombre: 0, centimes: 0 },
     comptageId = null,
     contenantId = CONTENANT_PAR_DEFAUT,
   } = mouvement;
@@ -87,10 +118,14 @@ export function insererMouvement(db, mouvement) {
   const resultat = db
     .prepare(
       `INSERT INTO mouvements_coffre
-         (contenant_id, date, agent, type, motif, comptage_id, cree_le)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (contenant_id, date, agent, type, motif, comptage_id, cree_le,
+          cheques_nombre, cheques_centimes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(contenantId, date, agent, type, motif, comptageId, horodatage());
+    .run(
+      contenantId, date, agent, type, motif, comptageId, horodatage(),
+      cheques.nombre, cheques.centimes,
+    );
 
   const mouvementId = Number(resultat.lastInsertRowid);
   const insererLigne = db.prepare(
@@ -115,6 +150,7 @@ export function insererMouvement(db, mouvement) {
  * @param {string} params.agent
  * @param {string} params.motif
  * @param {Map<number, number>} params.quantites quantités positives à retirer
+ * @param {{nombre: number, centimes: number}} [params.cheques] positifs à retirer
  * @param {number} [params.contenantId]
  */
 export function enregistrerSortie(db, params) {
@@ -123,11 +159,14 @@ export function enregistrerSortie(db, params) {
     agent,
     motif,
     quantites,
+    cheques = { nombre: 0, centimes: 0 },
     contenantId = CONTENANT_PAR_DEFAUT,
   } = params;
 
-  if (quantites.size === 0) {
-    throw new ErreurValidation('Une sortie doit porter sur au moins une coupure.');
+  if (quantites.size === 0 && cheques.nombre === 0 && cheques.centimes === 0) {
+    throw new ErreurValidation(
+      'Une sortie doit porter sur au moins une coupure ou un chèque.',
+    );
   }
 
   const transaction = db.transaction(() => {
@@ -147,6 +186,17 @@ export function enregistrerSortie(db, params) {
       );
     }
 
+    const stockCheques = chequesAuCoffre(db, contenantId);
+    if (
+      cheques.nombre > stockCheques.nombre ||
+      cheques.centimes > stockCheques.centimes
+    ) {
+      throw new ErreurValidation(
+        `Pas autant de chèques au coffre : demandé ${cheques.nombre} pour ${cheques.centimes} centimes, disponible ${stockCheques.nombre} pour ${stockCheques.centimes} centimes.`,
+        { cheques: { demande: cheques, disponible: stockCheques } },
+      );
+    }
+
     const signees = new Map(
       [...quantites].map(([coupure, quantite]) => [coupure, -quantite]),
     );
@@ -157,10 +207,16 @@ export function enregistrerSortie(db, params) {
       type: 'sortie',
       motif,
       quantites: signees,
+      cheques: { nombre: -cheques.nombre, centimes: -cheques.centimes },
       contenantId,
     });
 
-    return { id, montant_centimes: totalCentimes(quantites) };
+    return {
+      id,
+      montant_centimes: totalCentimes(quantites) + cheques.centimes,
+      especes_centimes: totalCentimes(quantites),
+      cheques_centimes: cheques.centimes,
+    };
   });
 
   return transaction();

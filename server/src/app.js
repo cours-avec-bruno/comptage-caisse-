@@ -39,6 +39,24 @@ export function creerApp(options) {
   const asyncRoute = (handler) => (req, res, next) =>
     Promise.resolve(handler(req, res, next)).catch(next);
 
+  /**
+   * Chèques d'une requête : un nombre et un montant total, tous deux entiers.
+   * Un nombre sans montant (ou l'inverse) est une saisie incomplète, pas un zéro.
+   */
+  const lireCheques = (corps) => {
+    const nombre = montantCentimes(corps.cheques_nombre ?? 0, 'Le nombre de chèques');
+    const centimes = montantCentimes(corps.cheques_centimes ?? 0, 'Le montant des chèques');
+
+    if ((nombre === 0) !== (centimes === 0)) {
+      throw new ErreurValidation(
+        nombre === 0
+          ? 'Indiquez combien de chèques composent ce montant.'
+          : 'Indiquez le montant total des chèques.',
+      );
+    }
+    return { nombre, centimes };
+  };
+
   // --- Paramètres -----------------------------------------------------------
 
   api.get('/parametres', (req, res) => {
@@ -82,6 +100,7 @@ export function creerApp(options) {
       const quantites = normaliserQuantites(corps.detail ?? {});
       const cbCentimes = montantCentimes(corps.cb_centimes, 'La recette CB');
       const fondCentimes = montantCentimes(corps.fond_centimes, 'Le fond de caisse');
+      const cheques = lireCheques(corps);
 
       const comptage = validerJournee(db, {
         date,
@@ -89,6 +108,7 @@ export function creerApp(options) {
         quantites,
         cbCentimes,
         fondCentimes,
+        cheques,
       });
 
       // Sauvegarde à chaque validation de journée, comme demandé au brief.
@@ -119,7 +139,8 @@ export function creerApp(options) {
   api.get('/coffre/mouvements', (req, res) => {
     const mouvements = db
       .prepare(
-        `SELECT id, date, agent, type, motif, comptage_id, cree_le
+        `SELECT id, date, agent, type, motif, comptage_id, cree_le,
+                cheques_nombre, cheques_centimes
            FROM mouvements_coffre
           ORDER BY date DESC, id DESC`,
       )
@@ -146,10 +167,9 @@ export function creerApp(options) {
         return {
           ...m,
           detail,
-          montant_centimes: detail.reduce(
-            (somme, l) => somme + l.coupure_centimes * l.quantite,
-            0,
-          ),
+          montant_centimes:
+            detail.reduce((somme, l) => somme + l.coupure_centimes * l.quantite, 0) +
+            m.cheques_centimes,
         };
       }),
     });
@@ -167,7 +187,8 @@ export function creerApp(options) {
     }
 
     const quantites = normaliserQuantites(corps.detail ?? {});
-    const sortie = enregistrerSortie(db, { date, agent, motif, quantites });
+    const cheques = lireCheques(corps);
+    const sortie = enregistrerSortie(db, { date, agent, motif, quantites, cheques });
 
     res.status(201).json({ sortie, coffre: etatCoffre(db) });
   });

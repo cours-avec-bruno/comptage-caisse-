@@ -43,7 +43,8 @@ export function versCsv(entetes, lignes) {
 export function csvComptages(db) {
   const comptages = db
     .prepare(
-      `SELECT id, date, agent, especes_centimes, cb_centimes, fond_centimes, cree_le
+      `SELECT id, date, agent, especes_centimes, cb_centimes, fond_centimes,
+              cheques_nombre, cheques_centimes, cree_le
          FROM comptages
         ORDER BY date DESC, id DESC`,
     )
@@ -68,11 +69,14 @@ export function csvComptages(db) {
     'agent',
     'especes_eur',
     'cb_eur',
+    'cheques_nombre',
+    'cheques_eur',
     'fond_eur',
     'recette_especes_eur',
     'recette_jour_eur',
     'especes_centimes',
     'cb_centimes',
+    'cheques_centimes',
     'fond_centimes',
     'recette_jour_centimes',
     'cree_le',
@@ -82,7 +86,9 @@ export function csvComptages(db) {
   const lignes = comptages.map((c) => {
     const quantites = parComptage.get(c.id) ?? new Map();
     const recetteEsp = recetteEspeces(c.especes_centimes, c.fond_centimes);
-    const recette = recetteJour(c.especes_centimes, c.fond_centimes, c.cb_centimes);
+    const recette = recetteJour(
+      c.especes_centimes, c.fond_centimes, c.cb_centimes, c.cheques_centimes,
+    );
 
     return [
       c.id,
@@ -90,11 +96,14 @@ export function csvComptages(db) {
       c.agent,
       formaterDecimal(c.especes_centimes),
       formaterDecimal(c.cb_centimes),
+      c.cheques_nombre,
+      formaterDecimal(c.cheques_centimes),
       formaterDecimal(c.fond_centimes),
       formaterDecimal(recetteEsp),
       formaterDecimal(recette),
       c.especes_centimes,
       c.cb_centimes,
+      c.cheques_centimes,
       c.fond_centimes,
       recette,
       c.cree_le,

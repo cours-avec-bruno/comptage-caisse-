@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EtatCoffre } from '../api';
+import type { EtatCoffre, LigneCaisse } from '../api';
 import { Jeton } from '../composants/Jeton';
 import { COUPURES } from '../coupures';
 import { dateLongue, formaterEuros } from '../format';
@@ -16,6 +16,71 @@ const libelleDe = (centimes: number) =>
   COUPURES.find((coupure) => coupure.valeur === centimes)?.libelle ??
   `${centimes} centimes`;
 
+/** Une caisse dépliée : ce qui doit s'y trouver, coupure par coupure. */
+function TableauCaisse({
+  lignes,
+  vide,
+  libelleTotal = 'Total',
+}: {
+  lignes: (LigneCaisse & { liasses?: number })[];
+  vide: string;
+  /** En caisse rouge, les chèques sont comptés à part : le pied ne
+      totalise que les coupures, et il doit le dire. */
+  libelleTotal?: string;
+}) {
+  const total = lignes.reduce((somme, l) => somme + l.valeur_centimes, 0);
+  const aQuelqueChose = lignes.some((l) => l.quantite > 0);
+
+  if (!aQuelqueChose) {
+    return <p className="caisse__vide">{vide}</p>;
+  }
+
+  return (
+    <table className="tableau">
+      <thead>
+        <tr>
+          <th>Coupure</th>
+          <th className="col-nombre">Quantité</th>
+          <th className="col-nombre">Valeur</th>
+        </tr>
+      </thead>
+      <tbody>
+        {lignes.map((ligne) => (
+          <tr
+            key={ligne.coupure_centimes}
+            className={ligne.quantite === 0 ? 'ligne-absente' : undefined}
+          >
+            <td>
+              <span className="cellule-coupure">
+                <Jeton valeur={ligne.coupure_centimes} compact />
+                <span className="cellule-coupure__nom">
+                  {libelleDe(ligne.coupure_centimes)}
+                  {ligne.liasses ? (
+                    <span className="cellule-coupure__liasses">
+                      {ligne.liasses} liasse{ligne.liasses > 1 ? 's' : ''} de 10
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+            </td>
+            <td className="col-nombre">{ligne.quantite}</td>
+            <td className="col-nombre">{formaterEuros(ligne.valeur_centimes)}</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>{libelleTotal}</td>
+          <td className="col-nombre">
+            {lignes.reduce((somme, l) => somme + l.quantite, 0)}
+          </td>
+          <td className="col-nombre">{formaterEuros(total)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  );
+}
+
 export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
   // Un seul chiffre par défaut : le détail ne s'affiche jamais d'office.
   const [detailVisible, setDetailVisible] = useState(false);
@@ -23,6 +88,7 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
   const [message, setMessage] = useState<string | null>(null);
 
   const coffreVide = coffre.solde_centimes === 0;
+  const { grise, rouge } = coffre.repartition;
 
   return (
     <>
@@ -45,6 +111,24 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
           <span className="coffre-solde__chiffre">
             {formaterEuros(coffre.solde_centimes)}
           </span>
+
+          {/* Les deux caisses restent en second plan : le chiffre du dessus
+              est celui qu'on vérifie, ceux-ci disent seulement où c'est rangé. */}
+          <div className="coffre-solde__caisses">
+            <span className="pastille-caisse pastille-caisse--grise">
+              Caisse grise <strong>{formaterEuros(grise.total_centimes)}</strong>
+            </span>
+            <span className="pastille-caisse pastille-caisse--rouge">
+              Caisse rouge <strong>{formaterEuros(rouge.total_centimes)}</strong>
+            </span>
+            {rouge.cheques.nombre > 0 && (
+              <span className="coffre-solde__cheques">
+                dont {rouge.cheques.nombre} chèque{rouge.cheques.nombre > 1 ? 's' : ''}{' '}
+                pour {formaterEuros(rouge.cheques.centimes)}
+              </span>
+            )}
+          </div>
+
           <p className="coffre-solde__meta">
             {coffre.dernier_versement
               ? `Dernier versement le ${dateLongue(coffre.dernier_versement.date)} par ${coffre.dernier_versement.agent}`
@@ -83,44 +167,55 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
       </div>
 
       {detailVisible && (
-        <div className="carte coffre-detail">
-          <table className="tableau">
-            <thead>
-              <tr>
-                <th>Coupure</th>
-                <th className="col-nombre">Quantité</th>
-                <th className="col-nombre">Valeur</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coffre.inventaire.map((ligne) => (
-                <tr
-                  key={ligne.coupure_centimes}
-                  className={ligne.quantite === 0 ? 'ligne-absente' : undefined}
-                >
-                  <td>
-                    <span className="cellule-coupure">
-                      <Jeton valeur={ligne.coupure_centimes} compact />
-                      <span className="cellule-coupure__nom">
-                        {libelleDe(ligne.coupure_centimes)}
-                      </span>
-                    </span>
-                  </td>
-                  <td className="col-nombre">{ligne.quantite}</td>
-                  <td className="col-nombre">{formaterEuros(ligne.valeur_centimes)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td>Total</td>
-                <td className="col-nombre">
-                  {coffre.inventaire.reduce((somme, l) => somme + l.quantite, 0)}
-                </td>
-                <td className="col-nombre">{formaterEuros(coffre.solde_centimes)}</td>
-              </tr>
-            </tfoot>
-          </table>
+        <div className="coffre-caisses">
+          <section className="carte caisse caisse--grise">
+            <header className="caisse__entete">
+              <div>
+                <h2>Caisse grise</h2>
+                <p>Le courant : pièces, et les billets qui ne font pas encore liasse.</p>
+              </div>
+              <span className="caisse__total">
+                {formaterEuros(grise.total_centimes)}
+              </span>
+            </header>
+            <TableauCaisse lignes={grise.lignes} vide="Caisse grise vide." />
+          </section>
+
+          <section className="carte caisse caisse--rouge">
+            <header className="caisse__entete">
+              <div>
+                <h2>Caisse rouge</h2>
+                <p>
+                  Les liasses de 10, tous les billets de 50 € et les chèques, quel que
+                  soit leur nombre.
+                </p>
+              </div>
+              <span className="caisse__total">
+                {formaterEuros(rouge.total_centimes)}
+              </span>
+            </header>
+
+            {rouge.cheques.nombre > 0 && (
+              <div className="caisse__cheques">
+                <span>
+                  {rouge.cheques.nombre} chèque{rouge.cheques.nombre > 1 ? 's' : ''}
+                </span>
+                <strong>{formaterEuros(rouge.cheques.centimes)}</strong>
+              </div>
+            )}
+
+            <TableauCaisse
+              lignes={rouge.lignes}
+              libelleTotal={
+                rouge.cheques.nombre > 0 ? 'Total des billets' : 'Total'
+              }
+              vide={
+                rouge.cheques.nombre > 0
+                  ? 'Aucun billet en caisse rouge, seulement des chèques.'
+                  : 'Caisse rouge vide.'
+              }
+            />
+          </section>
         </div>
       )}
 
@@ -129,6 +224,7 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
           date={date}
           agent={agent}
           inventaire={coffre.inventaire}
+          cheques={coffre.cheques}
           onFermer={() => setSortieOuverte(false)}
           onEnregistree={(montant) => {
             setSortieOuverte(false);

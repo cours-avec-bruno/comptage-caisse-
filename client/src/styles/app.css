@@ -515,3 +515,184 @@
 .liste-fichiers li:last-child {
   border-bottom: 0;
 }
+
+/* --- Chèques ---------------------------------------------------------- */
+
+.saisie-cheques {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saisie-cheques__nombre {
+  width: 52px;
+  padding: 6px 8px;
+}
+
+.saisie-cheques__pour {
+  font-size: 12.5px;
+  color: var(--encre-effacee);
+}
+
+.panneau__note--alerte {
+  color: var(--attention);
+  text-align: left;
+}
+
+.cellule-appoint {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--encre-effacee);
+}
+
+.montant-nul {
+  color: var(--encre-effacee);
+}
+
+.sortie-cheques {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-m);
+  background: var(--surface-douce);
+}
+
+.sortie-cheques > div:first-child {
+  flex: 1;
+  min-width: 160px;
+}
+
+.sortie-cheques__stock {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--encre-effacee);
+}
+
+/* --- Les deux caisses du coffre --------------------------------------- */
+
+.coffre-solde__caisses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+
+.pastille-caisse {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--encre-douce);
+}
+
+.pastille-caisse strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--encre);
+}
+
+/* Les deux caisses sont physiquement grise et rouge : la couleur de la
+   pastille est l'information, pas une décoration. */
+.pastille-caisse--grise {
+  border-color: var(--trait-fort);
+  background: var(--surface-creuse);
+}
+
+.pastille-caisse--rouge {
+  border-color: var(--alerte-trait);
+  background: var(--alerte-clair);
+}
+
+.pastille-caisse--rouge strong {
+  color: var(--alerte);
+}
+
+.coffre-solde__cheques {
+  font-size: 12.5px;
+  color: var(--encre-effacee);
+}
+
+.coffre-caisses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--gouttiere);
+  margin-top: var(--gouttiere);
+  align-items: start;
+}
+
+.caisse {
+  overflow: hidden;
+  border-top: 3px solid;
+}
+
+.caisse--grise {
+  border-top-color: var(--trait-fort);
+}
+
+.caisse--rouge {
+  border-top-color: var(--alerte);
+}
+
+.caisse__entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--trait);
+}
+
+.caisse__entete h2 {
+  font-size: 16px;
+}
+
+.caisse__entete p {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--encre-douce);
+  max-width: 34ch;
+}
+
+.caisse__total {
+  font-size: 19px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.caisse__cheques {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 18px;
+  background: var(--alerte-clair);
+  border-bottom: 1px solid var(--trait);
+  font-size: 14px;
+  color: var(--alerte);
+}
+
+.caisse__cheques strong {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.caisse__vide {
+  padding: 22px 18px;
+  font-size: 13.5px;
+  color: var(--encre-effacee);
+}
+
+.cellule-coupure__liasses {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--alerte);
+}

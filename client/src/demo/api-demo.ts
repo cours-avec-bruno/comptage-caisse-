@@ -1,6 +1,21 @@
 import { COUPURES, formaterDecimal } from 'caisse-partage';
 import { ErreurApi, type ClientApi } from '../api-types';
+import { repartirCoffre } from 'caisse-partage';
 import { MagasinDemo, dateLocale, libelleCoupure, totalCentimes } from './donnees';
+
+/** Même forme que la réponse du serveur : solde, chèques et rangement. */
+const etatCoffre = () => {
+  const inventaire = magasin.inventaire();
+  const cheques = magasin.cheques();
+  return {
+    solde_centimes: magasin.solde(),
+    especes_centimes: magasin.especes(),
+    cheques,
+    dernier_versement: magasin.dernierVersement(),
+    inventaire,
+    repartition: repartirCoffre(inventaire, cheques),
+  };
+};
 
 /**
  * Implémentation de l'API pour la version publiée en démonstration.
@@ -28,9 +43,10 @@ function versCsv(entetes: string[], lignes: (string | number)[][]): string {
 
 function csvComptages(): string {
   const entetes = [
-    'id', 'date', 'agent', 'especes_eur', 'cb_eur', 'fond_eur',
-    'recette_especes_eur', 'recette_jour_eur', 'especes_centimes',
-    'cb_centimes', 'fond_centimes', 'recette_jour_centimes', 'cree_le',
+    'id', 'date', 'agent', 'especes_eur', 'cb_eur', 'cheques_nombre',
+    'cheques_eur', 'fond_eur', 'recette_especes_eur', 'recette_jour_eur',
+    'especes_centimes', 'cb_centimes', 'cheques_centimes', 'fond_centimes',
+    'recette_jour_centimes', 'cree_le',
     ...COUPURES.map((c) => `qte_${c.libelle.replace(/\s/g, '_')}`),
   ];
 
@@ -44,10 +60,12 @@ function csvComptages(): string {
         c.id, c.date, c.agent,
         formaterDecimal(c.especes_centimes),
         formaterDecimal(c.cb_centimes),
+        c.cheques_nombre,
+        formaterDecimal(c.cheques_centimes),
         formaterDecimal(c.fond_centimes),
         formaterDecimal(c.recette_especes_centimes),
         formaterDecimal(c.recette_centimes),
-        c.especes_centimes, c.cb_centimes, c.fond_centimes,
+        c.especes_centimes, c.cb_centimes, c.cheques_centimes, c.fond_centimes,
         c.recette_centimes, c.cree_le,
         ...COUPURES.map((coupure) => quantites.get(coupure.valeur) ?? 0),
       ];
@@ -121,12 +139,7 @@ export const apiDemo: ClientApi = {
     });
   },
 
-  coffre: () =>
-    repondre({
-      solde_centimes: magasin.solde(),
-      dernier_versement: magasin.dernierVersement(),
-      inventaire: magasin.inventaire(),
-    }),
+  coffre: () => repondre(etatCoffre()),
 
   journal: () => {
     const { lignes, cumul } = magasin.journal();
@@ -143,14 +156,28 @@ export const apiDemo: ClientApi = {
           agent: c.agent,
           especes_centimes: c.especes_centimes,
           cb_centimes: c.cb_centimes,
+          cheques_centimes: c.cheques_centimes,
           cree_le: c.cree_le,
         })),
     }),
 
   validerJournee: (corps) => {
-    if (Object.keys(corps.detail).length === 0 && corps.cb_centimes === 0) {
+    if (
+      Object.keys(corps.detail).length === 0 &&
+      corps.cb_centimes === 0 &&
+      corps.cheques_centimes === 0
+    ) {
       return Promise.reject(
-        new ErreurApi('Rien à valider : ni espèces comptées, ni recette CB.'),
+        new ErreurApi('Rien à valider : ni espèces comptées, ni recette CB, ni chèque.'),
+      );
+    }
+    if ((corps.cheques_nombre === 0) !== (corps.cheques_centimes === 0)) {
+      return Promise.reject(
+        new ErreurApi(
+          corps.cheques_nombre === 0
+            ? 'Indiquez combien de chèques composent ce montant.'
+            : 'Indiquez le montant total des chèques.',
+        ),
       );
     }
     if (!magasin.agents.includes(corps.agent)) {
@@ -173,27 +200,34 @@ export const apiDemo: ClientApi = {
         new ErreurApi('Le motif de la sortie est obligatoire.'),
       );
     }
-    if (totalCentimes(
-      Object.entries(corps.detail).map(([c, q]) => ({
-        coupure_centimes: Number(c),
-        quantite: Number(q),
-      })),
-    ) === 0) {
+    const stockCheques = magasin.cheques();
+    if (
+      corps.cheques_nombre > stockCheques.nombre ||
+      corps.cheques_centimes > stockCheques.centimes
+    ) {
       return Promise.reject(
-        new ErreurApi('Une sortie doit porter sur au moins une coupure.'),
+        new ErreurApi(
+          `Pas autant de chèques au coffre : disponible ${stockCheques.nombre} pour ${stockCheques.centimes} centimes.`,
+        ),
+      );
+    }
+    if (
+      totalCentimes(
+        Object.entries(corps.detail).map(([c, q]) => ({
+          coupure_centimes: Number(c),
+          quantite: Number(q),
+        })),
+      ) === 0 &&
+      corps.cheques_centimes === 0
+    ) {
+      return Promise.reject(
+        new ErreurApi('Une sortie doit porter sur au moins une coupure ou un chèque.'),
       );
     }
 
     try {
       const sortie = magasin.enregistrerSortie(corps);
-      return repondre({
-        sortie,
-        coffre: {
-          solde_centimes: magasin.solde(),
-          dernier_versement: magasin.dernierVersement(),
-          inventaire: magasin.inventaire(),
-        },
-      });
+      return repondre({ sortie, coffre: etatCoffre() });
     } catch (probleme) {
       const erreur = probleme as Error & { details?: { coupures?: [] } };
       return Promise.reject(new ErreurApi(erreur.message, erreur.details));

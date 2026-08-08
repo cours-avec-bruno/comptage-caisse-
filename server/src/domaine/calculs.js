@@ -105,14 +105,20 @@ export function recetteEspeces(especesCentimes, fondCentimes) {
 }
 
 /**
- * Recette du jour = recette espèces + CB.
+ * Recette du jour = recette espèces + CB + chèques.
  * @param {number} especesCentimes
  * @param {number} fondCentimes
  * @param {number} cbCentimes
+ * @param {number} [chequesCentimes]
  * @returns {number}
  */
-export function recetteJour(especesCentimes, fondCentimes, cbCentimes) {
-  return recetteEspeces(especesCentimes, fondCentimes) + cbCentimes;
+export function recetteJour(
+  especesCentimes,
+  fondCentimes,
+  cbCentimes,
+  chequesCentimes = 0,
+) {
+  return recetteEspeces(especesCentimes, fondCentimes) + cbCentimes + chequesCentimes;
 }
 
 /**

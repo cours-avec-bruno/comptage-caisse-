@@ -16,10 +16,35 @@ export interface LigneInventaire {
   valeur_centimes: number;
 }
 
+export interface Cheques {
+  nombre: number;
+  centimes: number;
+}
+
+export interface LigneCaisse {
+  coupure_centimes: number;
+  quantite: number;
+  valeur_centimes: number;
+}
+
+export interface RepartitionCoffre {
+  grise: { lignes: LigneCaisse[]; total_centimes: number };
+  rouge: {
+    lignes: (LigneCaisse & { liasses: number })[];
+    especes_centimes: number;
+    cheques: Cheques;
+    total_centimes: number;
+  };
+  total_centimes: number;
+}
+
 export interface EtatCoffre {
   solde_centimes: number;
+  especes_centimes: number;
+  cheques: Cheques;
   dernier_versement: { date: string; agent: string; cree_le: string } | null;
   inventaire: LigneInventaire[];
+  repartition: RepartitionCoffre;
 }
 
 export interface LigneJournal {
@@ -29,6 +54,8 @@ export interface LigneJournal {
   especes_centimes: number;
   cb_centimes: number;
   fond_centimes: number;
+  cheques_nombre: number;
+  cheques_centimes: number;
   recette_especes_centimes: number;
   recette_centimes: number;
   cree_le: string;
@@ -39,6 +66,8 @@ export interface Journal {
   cumul: {
     especes_centimes: number;
     cb_centimes: number;
+    cheques_nombre: number;
+    cheques_centimes: number;
     recette_especes_centimes: number;
     recette_centimes: number;
   };
@@ -49,6 +78,7 @@ export interface ComptageDuJour {
   agent: string;
   especes_centimes: number;
   cb_centimes: number;
+  cheques_centimes: number;
   cree_le: string;
 }
 
@@ -96,12 +126,16 @@ export interface ClientApi {
     detail: Record<number, number>;
     cb_centimes: number;
     fond_centimes: number;
+    cheques_nombre: number;
+    cheques_centimes: number;
   }): Promise<ReponseValidation>;
   sortieCoffre(corps: {
     date: string;
     agent: string;
     motif: string;
     detail: Record<number, number>;
+    cheques_nombre: number;
+    cheques_centimes: number;
   }): Promise<{ sortie: { id: number; montant_centimes: number }; coffre: EtatCoffre }>;
   sauvegardes(): Promise<{
     dossier: string;

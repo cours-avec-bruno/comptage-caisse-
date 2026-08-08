@@ -28,13 +28,21 @@ import { insererMouvement } from './coffre.js';
  * @param {Map<number, number>} params.quantites
  * @param {number} params.cbCentimes
  * @param {number} params.fondCentimes
+ * @param {{nombre: number, centimes: number}} [params.cheques]
  */
 export function validerJournee(db, params) {
-  const { date, agent, quantites, cbCentimes, fondCentimes } = params;
+  const {
+    date,
+    agent,
+    quantites,
+    cbCentimes,
+    fondCentimes,
+    cheques = { nombre: 0, centimes: 0 },
+  } = params;
 
-  if (quantites.size === 0 && cbCentimes === 0) {
+  if (quantites.size === 0 && cbCentimes === 0 && cheques.centimes === 0) {
     throw new ErreurValidation(
-      'Rien à valider : ni espèces comptées, ni recette CB.',
+      'Rien à valider : ni espèces comptées, ni recette CB, ni chèque.',
     );
   }
 
@@ -44,10 +52,14 @@ export function validerJournee(db, params) {
     const resultat = db
       .prepare(
         `INSERT INTO comptages
-           (date, agent, especes_centimes, cb_centimes, fond_centimes, cree_le)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+           (date, agent, especes_centimes, cb_centimes, fond_centimes, cree_le,
+            cheques_nombre, cheques_centimes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(date, agent, especesCentimes, cbCentimes, fondCentimes, horodatage());
+      .run(
+        date, agent, especesCentimes, cbCentimes, fondCentimes, horodatage(),
+        cheques.nombre, cheques.centimes,
+      );
 
     const comptageId = Number(resultat.lastInsertRowid);
     const insererLigne = db.prepare(
@@ -59,14 +71,17 @@ export function validerJournee(db, params) {
       insererLigne.run(comptageId, coupure, quantite);
     }
 
+    // Les chèques montent au coffre comme les espèces (caisse rouge).
+    // La CB, elle, n'y entre jamais.
     let mouvementId = null;
-    if (quantites.size > 0) {
+    if (quantites.size > 0 || cheques.centimes > 0) {
       mouvementId = insererMouvement(db, {
         date,
         agent,
         type: 'versement',
         motif: `Versement du comptage du ${date}`,
         quantites,
+        cheques,
         comptageId,
       });
     }
@@ -79,8 +94,12 @@ export function validerJournee(db, params) {
       especes_centimes: especesCentimes,
       cb_centimes: cbCentimes,
       fond_centimes: fondCentimes,
+      cheques_nombre: cheques.nombre,
+      cheques_centimes: cheques.centimes,
       recette_especes_centimes: recetteEspeces(especesCentimes, fondCentimes),
-      recette_centimes: recetteJour(especesCentimes, fondCentimes, cbCentimes),
+      recette_centimes: recetteJour(
+        especesCentimes, fondCentimes, cbCentimes, cheques.centimes,
+      ),
     };
   });
 
@@ -96,7 +115,8 @@ export function validerJournee(db, params) {
 export function journal(db) {
   const lignes = db
     .prepare(
-      `SELECT id, date, agent, especes_centimes, cb_centimes, fond_centimes, cree_le
+      `SELECT id, date, agent, especes_centimes, cb_centimes, fond_centimes,
+              cheques_nombre, cheques_centimes, cree_le
          FROM comptages
         ORDER BY date DESC, id DESC`,
     )
@@ -111,6 +131,7 @@ export function journal(db) {
         ligne.especes_centimes,
         ligne.fond_centimes,
         ligne.cb_centimes,
+        ligne.cheques_centimes,
       ),
     }));
 
@@ -118,6 +139,8 @@ export function journal(db) {
     (somme, ligne) => ({
       especes_centimes: somme.especes_centimes + ligne.especes_centimes,
       cb_centimes: somme.cb_centimes + ligne.cb_centimes,
+      cheques_nombre: somme.cheques_nombre + ligne.cheques_nombre,
+      cheques_centimes: somme.cheques_centimes + ligne.cheques_centimes,
       recette_especes_centimes:
         somme.recette_especes_centimes + ligne.recette_especes_centimes,
       recette_centimes: somme.recette_centimes + ligne.recette_centimes,
@@ -125,6 +148,8 @@ export function journal(db) {
     {
       especes_centimes: 0,
       cb_centimes: 0,
+      cheques_nombre: 0,
+      cheques_centimes: 0,
       recette_especes_centimes: 0,
       recette_centimes: 0,
     },
@@ -160,7 +185,7 @@ export function detailComptage(db, comptageId) {
 export function comptagesDuJour(db, date) {
   return db
     .prepare(
-      `SELECT id, agent, especes_centimes, cb_centimes, cree_le
+      `SELECT id, agent, especes_centimes, cb_centimes, cheques_centimes, cree_le
          FROM comptages
         WHERE date = ?
         ORDER BY id`,
