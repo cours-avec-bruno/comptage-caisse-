@@ -41,9 +41,16 @@ const PIECES_MM: Record<number, number> = {
 const ECHELLE_BILLET = 0.42;
 const ECHELLE_PIECE = 1.32;
 
-const CUIVRE = { anneau: '#c07a4b', centre: '#b06c3f', bord: '#8a512c' };
-const OR = { anneau: '#d9b451', centre: '#cfa63f', bord: '#a3812c' };
-const ARGENT = { anneau: '#c4cad1', centre: '#b7bec6', bord: '#94a0aa' };
+/*
+ * Palette « Fidèle » : les couleurs réelles des coupures.
+ *
+ * Sur une pièce d'un seul métal, l'anneau et le centre sont identiques — le
+ * disque intérieur disparaît, et c'est voulu. Seules les bimétalliques
+ * (1 € et 2 €) montrent deux tons.
+ */
+const CUIVRE = { anneau: '#c1793e', centre: '#c1793e', bord: '#8f5427' };
+const OR = { anneau: '#d5a634', centre: '#d5a634', bord: '#a67d20' };
+const ARGENT = { anneau: '#c8ccd0', centre: '#c8ccd0', bord: '#969ba1' };
 
 export type ApparenceJeton =
   | {
@@ -67,10 +74,10 @@ const BILLETS_COULEUR: Record<
   number,
   { couleur: string; couleurClaire: string; bord: string }
 > = {
-  500: { couleur: '#b9bcb6', couleurClaire: '#d9dbd6', bord: '#8b8f88' }, // gris
-  1000: { couleur: '#cf5468', couleurClaire: '#e79aa6', bord: '#a03a4b' }, // rouge
-  2000: { couleur: '#4785c0', couleurClaire: '#8fb8dd', bord: '#2f6194' }, // bleu
-  5000: { couleur: '#e39a41', couleurClaire: '#f0c085', bord: '#b3742a' }, // orange
+  500: { couleur: '#b5b7b4', couleurClaire: '#d5d7d4', bord: '#8e918e' }, // gris
+  1000: { couleur: '#d1596b', couleurClaire: '#e79aa6', bord: '#a13c4c' }, // rouge
+  2000: { couleur: '#3f7cc0', couleurClaire: '#8ab4dd', bord: '#2b5c96' }, // bleu
+  5000: { couleur: '#e79c3f', couleurClaire: '#f2c485', bord: '#b57426' }, // orange
 };
 
 const PIECES_METAL: Record<number, { anneau: string; centre: string; bord: string; bimetal: boolean }> = {
