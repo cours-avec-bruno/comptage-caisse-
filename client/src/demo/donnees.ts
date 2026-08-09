@@ -51,9 +51,60 @@ export const totalCentimes = (
   detail: { coupure_centimes: number; quantite: number }[],
 ) => detail.reduce((somme, l) => somme + l.coupure_centimes * l.quantite, 0);
 
+export interface AgentDemo {
+  id: number;
+  prenom: string;
+  nom: string;
+  initiales: string;
+  actif: boolean;
+  cree_le: string;
+  /** En démonstration il n'y a rien à protéger : le mot de passe reste en clair. */
+  motDePasse: string;
+}
+
 export class MagasinDemo {
   fondDefautCentimes = 10_000;
-  agents = ['BR', 'ML', 'JD'];
+
+  agents: AgentDemo[] = [
+    { id: 1, prenom: 'Bruno', nom: 'Ricci', initiales: 'BR', actif: true, cree_le: '', motDePasse: 'BRUNO' },
+    { id: 2, prenom: 'Marie', nom: 'Lefevre', initiales: 'ML', actif: true, cree_le: '', motDePasse: 'MARIE' },
+  ];
+
+  /** L'agent connecté sur ce poste, ou null. */
+  connecte: AgentDemo | null = null;
+
+  private prochainAgent = 3;
+
+  /** Prénom en majuscules, sans accent : le mot de passe par défaut. */
+  static motDePasseParDefaut(prenom: string): string {
+    return prenom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+  }
+
+  initialesLibres(base: string): string {
+    if (!this.agents.some((a) => a.initiales === base)) return base;
+    for (let suffixe = 2; suffixe < 100; suffixe += 1) {
+      const candidat = `${base}${suffixe}`;
+      if (!this.agents.some((a) => a.initiales === candidat)) return candidat;
+    }
+    return base;
+  }
+
+  ajouterAgent(prenom: string, nom: string): AgentDemo {
+    const lettre = (mot: string) =>
+      mot.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().charAt(0).toUpperCase();
+    const agent: AgentDemo = {
+      id: this.prochainAgent,
+      prenom: prenom.trim(),
+      nom: nom.trim(),
+      initiales: this.initialesLibres(`${lettre(prenom)}${lettre(nom)}`),
+      actif: true,
+      cree_le: horodatage(),
+      motDePasse: MagasinDemo.motDePasseParDefaut(prenom),
+    };
+    this.prochainAgent += 1;
+    this.agents.push(agent);
+    return agent;
+  }
   comptages: Comptage[] = [];
   mouvements: Mouvement[] = [];
 
@@ -75,7 +126,7 @@ export class MagasinDemo {
     }[] = [
       { jours: 4, agent: 'ML', cb: 48_250, cheques: { nombre: 2, centimes: 4_400 }, detail: { 5000: 3, 2000: 6, 1000: 4, 500: 7, 200: 22, 100: 31, 50: 14, 20: 25, 10: 18, 5: 12 } },
       { jours: 3, agent: 'BR', cb: 33_900, detail: { 5000: 2, 2000: 4, 1000: 9, 500: 5, 200: 18, 100: 24, 50: 11, 20: 8 } },
-      { jours: 2, agent: 'JD', cb: 51_400, cheques: { nombre: 3, centimes: 9_150 }, detail: { 5000: 4, 2000: 7, 1000: 6, 500: 9, 200: 27, 100: 19, 50: 22, 20: 16, 10: 9 } },
+      { jours: 2, agent: 'ML', cb: 51_400, cheques: { nombre: 3, centimes: 9_150 }, detail: { 5000: 4, 2000: 7, 1000: 6, 500: 9, 200: 27, 100: 19, 50: 22, 20: 16, 10: 9 } },
       { jours: 1, agent: 'BR', cb: 27_650, detail: { 5000: 1, 2000: 5, 1000: 8, 500: 4, 200: 15, 100: 28, 50: 17, 20: 12, 5: 20 } },
     ];
 

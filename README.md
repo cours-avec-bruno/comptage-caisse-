@@ -24,6 +24,50 @@ doit rester ouverte tant qu'on utilise l'application : la fermer arrête tout.
 
 Sous Linux ou macOS, `./demarrer-caisse.sh` fait la même chose.
 
+## Se connecter
+
+L'application s'ouvre sur une page de connexion : on clique sur son prénom, on
+tape son mot de passe, on entre. La session tient une journée de service large
+(14 h) et survit à un redémarrage de l'application — fermer la fenêtre noire ne
+déconnecte personne en plein comptage.
+
+**Le mot de passe d'un agent est son prénom en majuscules** (`BRUNO`, `MARIE`).
+Il se change dans les paramètres, une fois connecté.
+
+Deux agents existent au premier démarrage : **Bruno Ricci** (`BR`) et
+**Marie Lefevre** (`ML`).
+
+### Ajouter, modifier, désactiver un agent
+
+Tout se passe dans **Paramètres → Agents d'accueil** :
+
+- **Ajouter** : prénom et nom suffisent. Les initiales se déduisent du nom, et
+  le mot de passe initial est le prénom en majuscules.
+- **Mot de passe** : en saisir un nouveau, ou le *Réinitialiser* au prénom en
+  majuscules si quelqu'un l'a oublié.
+- **Désactiver** : l'agent ne peut plus se connecter, mais son nom reste dans
+  l'historique déjà écrit. On ne peut pas se désactiver soi-même, ni désactiver
+  le dernier agent actif — plus personne ne pourrait entrer.
+
+Tout agent connecté peut gérer les autres : l'équipe fait trois personnes autour
+du même comptoir, et une hiérarchie de rôles coûterait plus qu'elle ne
+protégerait.
+
+### Ce que cette connexion protège, et ce qu'elle ne protège pas
+
+Elle empêche qu'un visiteur passant derrière le comptoir ouvre l'application, et
+elle garantit qu'une opération est signée par la personne réellement connectée —
+le poste ne peut plus signer au nom d'un collègue.
+
+Elle ne protège pas contre quelqu'un qui connaît l'équipe : **un prénom en
+majuscules se devine**. Si l'application doit un jour compter pour un contrôle,
+il faut de vrais mots de passe. Le changement se fait dans les paramètres, sans
+rien toucher au code.
+
+Côté technique, les mots de passe ne sont **jamais stockés en clair** : ils
+passent par `scrypt` avec un sel propre à chaque agent. Le jeton de session vit
+dans un cookie `HttpOnly`, hors de portée de tout script de la page.
+
 ## Les trois écrans
 
 **Comptage du jour** — une ligne par coupure, billets puis pièces. On tape la
@@ -60,9 +104,9 @@ ancienne, avec le cumul en bas et les boutons d'export.
   compris. *(À confirmer avec le responsable : si le fond reste physiquement dans
   la caisse le soir, il faudra saisir quelles coupures y restent, et la
   validation changera — voir « Points ouverts ».)*
-- Chaque opération est enregistrée avec les initiales sélectionnées en haut à
-  droite. Il n'y a ni compte ni mot de passe : c'est une signature, pas une
-  sécurité.
+- Chaque opération est enregistrée avec les initiales de l'agent **connecté**,
+  et non avec celles choisies dans un menu : le poste ne peut pas signer au nom
+  d'un collègue.
 
 ### Les deux caisses du coffre
 
@@ -114,6 +158,8 @@ npm start          # sert l'API et le front buildé sur le port 4173
 | Dossier   | Rôle |
 | --------- | ---- |
 | `shared/` | Les 12 coupures, le formatage euro et la règle de rangement du coffre, partagés par l'API et le front |
+| `server/src/domaine/agents.js` | Agents, hachage `scrypt`, mots de passe |
+| `server/src/domaine/sessions.js` | Jetons de session et cookie |
 | `server/` | Express, SQLite (`better-sqlite3`), calculs, export, sauvegarde |
 | `client/` | Vite + React + TypeScript, CSS écrit à la main |
 
@@ -159,6 +205,10 @@ principes d'Apple (*Designing Fluid Interfaces*), traduits pour le web :
 - Le fichier `.db` et le dossier `sauvegardes/` ne vont pas dans git.
 
 ### Modèle de données
+
+`agents` (prénom, nom, initiales, empreinte du mot de passe) et `sessions`
+(jeton, agent, expiration) : ni l'un ni l'autre n'est de l'historique, tous deux
+se modifient et aucun trigger ne les protège.
 
 `comptages` (une ligne par journée validée) et `comptage_detail` (le détail par
 coupure) ; `mouvements_coffre` (`versement` ou `sortie`) et `mouvement_detail`

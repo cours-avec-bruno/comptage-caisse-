@@ -1,5 +1,5 @@
 import { COUPURES, formaterDecimal } from 'caisse-partage';
-import { ErreurApi, type ClientApi } from '../api-types';
+import { ErreurApi, type Agent, type ClientApi } from '../api-types';
 import { repartirCoffre } from 'caisse-partage';
 import { MagasinDemo, dateLocale, libelleCoupure, totalCentimes } from './donnees';
 
@@ -27,6 +27,21 @@ const magasin = new MagasinDemo();
 /** Un court délai rend la démo honnête : le vrai serveur n'est pas instantané. */
 const repondre = <T>(valeur: T): Promise<T> =>
   new Promise((resoudre) => setTimeout(() => resoudre(valeur), 90));
+
+
+/** Sans le mot de passe : la démonstration copie la discipline du serveur. */
+const publier = (a: { id: number; prenom: string; nom: string; initiales: string; actif: boolean; cree_le: string }): Agent => ({
+  id: a.id, prenom: a.prenom, nom: a.nom, initiales: a.initiales,
+  actif: a.actif, cree_le: a.cree_le,
+});
+
+/** Toute route protégée exige une session, comme sur le vrai serveur. */
+const exigerSession = () => {
+  if (!magasin.connecte) {
+    throw new ErreurApi('Session expirée. Reconnectez-vous.');
+  }
+  return magasin.connecte;
+};
 
 const BOM = '﻿';
 
@@ -111,32 +126,92 @@ function csvInventaire(): string {
 }
 
 export const apiDemo: ClientApi = {
+  session: () => repondre({ agent: magasin.connecte ? publier(magasin.connecte) : null }),
+
+  connexion: (initiales, motDePasse) => {
+    const agent = magasin.agents.find(
+      (a) => a.actif && a.initiales === initiales.trim().toUpperCase(),
+    );
+    if (!agent || agent.motDePasse !== motDePasse.trim()) {
+      return Promise.reject(new ErreurApi('Initiales ou mot de passe incorrect.'));
+    }
+    magasin.connecte = agent;
+    return repondre({ agent: publier(agent) });
+  },
+
+  deconnexion: () => {
+    magasin.connecte = null;
+    return repondre(undefined as void);
+  },
+
+  agentsPourConnexion: () =>
+    repondre({ agents: magasin.agents.filter((a) => a.actif).map(publier) }),
+
+  agents: () => {
+    exigerSession();
+    return repondre({ agents: magasin.agents.map(publier) });
+  },
+
+  creerAgent: ({ prenom, nom }) => {
+    exigerSession();
+    if (!prenom.trim()) return Promise.reject(new ErreurApi('Le prénom est obligatoire.'));
+    if (!nom.trim()) return Promise.reject(new ErreurApi('Le nom est obligatoire.'));
+    return repondre({ agent: publier(magasin.ajouterAgent(prenom, nom)) });
+  },
+
+  modifierAgent: (id, modifications) => {
+    exigerSession();
+    const agent = magasin.agents.find((a) => a.id === id);
+    if (!agent) return Promise.reject(new ErreurApi('Agent introuvable.'));
+
+    if (modifications.actif === false) {
+      const restants = magasin.agents.filter((a) => a.actif && a.id !== id).length;
+      if (restants === 0) {
+        return Promise.reject(
+          new ErreurApi(
+            'Impossible de désactiver le dernier agent : plus personne ne pourrait se connecter.',
+          ),
+        );
+      }
+    }
+
+    if (modifications.prenom !== undefined) agent.prenom = modifications.prenom.trim();
+    if (modifications.nom !== undefined) agent.nom = modifications.nom.trim();
+    if (modifications.actif !== undefined) agent.actif = modifications.actif;
+    return repondre({ agent: publier(agent) });
+  },
+
+  changerMotDePasse: (id, motDePasse) => {
+    exigerSession();
+    const agent = magasin.agents.find((a) => a.id === id);
+    if (!agent) return Promise.reject(new ErreurApi('Agent introuvable.'));
+    if (motDePasse.trim().length < 3) {
+      return Promise.reject(new ErreurApi('Le mot de passe fait au moins 3 caractères.'));
+    }
+    agent.motDePasse = motDePasse.trim();
+    return repondre(undefined as void);
+  },
+
+  reinitialiserMotDePasse: (id) => {
+    exigerSession();
+    const agent = magasin.agents.find((a) => a.id === id);
+    if (!agent) return Promise.reject(new ErreurApi('Agent introuvable.'));
+    agent.motDePasse = MagasinDemo.motDePasseParDefaut(agent.prenom);
+    return repondre({ mot_de_passe: agent.motDePasse });
+  },
+
   parametres: () =>
     repondre({
       fond_defaut_centimes: magasin.fondDefautCentimes,
-      agents: [...magasin.agents],
       date_du_jour: dateLocale(),
     }),
 
   enregistrerParametres: (modifications) => {
+    exigerSession();
     if (modifications.fond_defaut_centimes !== undefined) {
       magasin.fondDefautCentimes = modifications.fond_defaut_centimes;
     }
-    if (modifications.agents) {
-      const liste = modifications.agents
-        .map((initiales) => initiales.trim().toUpperCase())
-        .filter(Boolean);
-      if (liste.length === 0) {
-        return Promise.reject(
-          new ErreurApi('Il faut au moins une paire d’initiales.'),
-        );
-      }
-      magasin.agents = [...new Set(liste)];
-    }
-    return repondre({
-      fond_defaut_centimes: magasin.fondDefautCentimes,
-      agents: [...magasin.agents],
-    });
+    return repondre({ fond_defaut_centimes: magasin.fondDefautCentimes });
   },
 
   coffre: () => repondre(etatCoffre()),
@@ -171,13 +246,8 @@ export const apiDemo: ClientApi = {
         new ErreurApi('Rien à valider : ni espèces comptées, ni recette CB, ni chèque.'),
       );
     }
-    if (!magasin.agents.includes(corps.agent)) {
-      return Promise.reject(
-        new ErreurApi(`Initiales inconnues : ${corps.agent}.`),
-      );
-    }
-
-    const comptage = magasin.validerJournee(corps);
+    const connecte = exigerSession();
+    const comptage = magasin.validerJournee({ ...corps, agent: connecte.initiales });
     return repondre({
       comptage: { ...comptage, mouvement_id: null },
       sauvegarde: null,
@@ -214,7 +284,8 @@ export const apiDemo: ClientApi = {
     }
 
     try {
-      const sortie = magasin.enregistrerSortie(corps);
+      const connecte = exigerSession();
+      const sortie = magasin.enregistrerSortie({ ...corps, agent: connecte.initiales });
       return repondre({ sortie, coffre: etatCoffre() });
     } catch (probleme) {
       const erreur = probleme as Error & { details?: { coupures?: [] } };

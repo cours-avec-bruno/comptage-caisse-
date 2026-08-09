@@ -6,8 +6,17 @@
 
 export interface Parametres {
   fond_defaut_centimes: number;
-  agents: string[];
   date_du_jour: string;
+}
+
+/** Un agent d'accueil. Le mot de passe ne sort jamais de la base. */
+export interface Agent {
+  id: number;
+  prenom: string;
+  nom: string;
+  initiales: string;
+  actif: boolean;
+  cree_le: string;
 }
 
 export interface LigneInventaire {
@@ -113,10 +122,25 @@ export type NomExport = 'comptages' | 'mouvements' | 'inventaire';
  * Les écrans ne savent pas lequel des deux ils utilisent.
  */
 export interface ClientApi {
+  /** Qui est connecté sur ce poste, ou `null`. */
+  session(): Promise<{ agent: Agent | null }>;
+  connexion(initiales: string, motDePasse: string): Promise<{ agent: Agent }>;
+  deconnexion(): Promise<void>;
+
+  /** Liste accessible avant connexion, pour la page de connexion. */
+  agentsPourConnexion(): Promise<{ agents: Agent[] }>;
+  agents(): Promise<{ agents: Agent[] }>;
+  creerAgent(params: { prenom: string; nom: string }): Promise<{ agent: Agent }>;
+  modifierAgent(
+    id: number,
+    modifications: { prenom?: string; nom?: string; actif?: boolean },
+  ): Promise<{ agent: Agent }>;
+  changerMotDePasse(id: number, motDePasse: string): Promise<void>;
+  reinitialiserMotDePasse(id: number): Promise<{ mot_de_passe: string }>;
+
   parametres(): Promise<Parametres>;
   enregistrerParametres(modifications: {
     fond_defaut_centimes?: number;
-    agents?: string[];
   }): Promise<Omit<Parametres, 'date_du_jour'>>;
   coffre(): Promise<EtatCoffre>;
   journal(): Promise<Journal>;

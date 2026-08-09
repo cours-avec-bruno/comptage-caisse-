@@ -2,6 +2,7 @@
 
 import {
   ErreurApi,
+  type Agent,
   type ClientApi,
   type ComptageDuJour,
   type EtatCoffre,
@@ -14,6 +15,9 @@ async function appeler<T>(chemin: string, options?: RequestInit): Promise<T> {
   let reponse: Response;
   try {
     reponse = await fetch(`/api${chemin}`, {
+      // Le jeton de session vit dans un cookie httpOnly : il faut demander
+      // qu'il accompagne la requête.
+      credentials: 'same-origin',
       headers: options?.body ? { 'Content-Type': 'application/json' } : undefined,
       ...options,
     });
@@ -33,6 +37,47 @@ async function appeler<T>(chemin: string, options?: RequestInit): Promise<T> {
 }
 
 export const apiHttp: ClientApi = {
+  session: () => appeler<{ agent: Agent | null }>('/session'),
+
+  connexion: (initiales, motDePasse) =>
+    appeler<{ agent: Agent }>('/connexion', {
+      method: 'POST',
+      body: JSON.stringify({ initiales, mot_de_passe: motDePasse }),
+    }),
+
+  deconnexion: async () => {
+    await appeler<void>('/deconnexion', { method: 'POST' });
+  },
+
+  agentsPourConnexion: () => appeler<{ agents: Agent[] }>('/agents-connexion'),
+
+  agents: () => appeler<{ agents: Agent[] }>('/agents'),
+
+  creerAgent: (params) =>
+    appeler<{ agent: Agent }>('/agents', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  modifierAgent: (id, modifications) =>
+    appeler<{ agent: Agent }>(`/agents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(modifications),
+    }),
+
+  changerMotDePasse: async (id, motDePasse) => {
+    await appeler<void>(`/agents/${id}/mot-de-passe`, {
+      method: 'PUT',
+      body: JSON.stringify({ mot_de_passe: motDePasse }),
+    });
+  },
+
+  reinitialiserMotDePasse: (id) =>
+    appeler<{ mot_de_passe: string }>(`/agents/${id}/mot-de-passe`, {
+      method: 'PUT',
+      body: JSON.stringify({ reinitialiser: true }),
+    }),
+
   parametres: () => appeler<Parametres>('/parametres'),
 
   enregistrerParametres: (modifications: {

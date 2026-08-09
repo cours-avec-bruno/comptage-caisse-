@@ -11,7 +11,24 @@ import {
   journal,
   validerJournee,
 } from './domaine/comptages.js';
-import { ecrireParametres, lireParametres, validerAgent } from './domaine/parametres.js';
+import { ecrireParametres, lireParametres } from './domaine/parametres.js';
+import {
+  authentifier,
+  changerMotDePasse,
+  creerAgent,
+  listerAgents,
+  modifierAgent,
+  reinitialiserMotDePasse,
+} from './domaine/agents.js';
+import {
+  agentDeSession,
+  cookieDeSession,
+  cookieEfface,
+  fermerSession,
+  lireCookie,
+  NOM_COOKIE,
+  ouvrirSession,
+} from './domaine/sessions.js';
 import { csvComptages, csvInventaire, csvMouvements } from './export-csv.js';
 import { listerSauvegardes, sauvegarder } from './sauvegarde.js';
 
@@ -49,6 +66,103 @@ export function creerApp(options) {
   const lireCheques = (corps) => ({
     nombre: 0,
     centimes: montantCentimes(corps.cheques_centimes ?? 0, 'Le montant des chèques'),
+  });
+
+  // --- Connexion ------------------------------------------------------------
+
+  /** Agent de la requête, ou null. */
+  const agentCourant = (req) =>
+    agentDeSession(db, lireCookie(req.headers.cookie, NOM_COOKIE));
+
+  api.post('/connexion', (req, res) => {
+    const corps = req.body ?? {};
+    const agent = authentifier(db, corps.initiales, corps.mot_de_passe);
+
+    if (!agent) {
+      // Un seul message pour les deux cas : distinguer « initiales inconnues »
+      // de « mot de passe faux » dirait lequel des deux est à retrouver.
+      res.status(401).json({ erreur: 'Initiales ou mot de passe incorrect.' });
+      return;
+    }
+
+    const { jeton } = ouvrirSession(db, agent.id);
+    res.setHeader('Set-Cookie', cookieDeSession(jeton, { secure: req.secure }));
+    res.json({ agent });
+  });
+
+  api.post('/deconnexion', (req, res) => {
+    const jeton = lireCookie(req.headers.cookie, NOM_COOKIE);
+    if (jeton) fermerSession(db, jeton);
+    res.setHeader('Set-Cookie', cookieEfface());
+    res.status(204).end();
+  });
+
+  /** Qui est connecté. Répond 200 avec `agent: null` plutôt que 401 : ce
+      n'est pas une erreur de ne pas être connecté, c'est une réponse. */
+  api.get('/session', (req, res) => {
+    res.json({ agent: agentCourant(req) });
+  });
+
+  /**
+   * Liste des agents actifs, accessible avant connexion : la page de
+   * connexion en a besoin pour proposer les prénoms.
+   *
+   * Ce n'est pas une fuite : l'application tourne sur le PC de l'accueil, et
+   * ces prénoms sont ceux affichés derrière le comptoir. Seuls le prénom, le
+   * nom et les initiales sortent — jamais l'empreinte du mot de passe.
+   */
+  api.get('/agents-connexion', (req, res) => {
+    res.json({
+      agents: listerAgents(db).map(({ id, prenom, nom, initiales }) => ({
+        id,
+        prenom,
+        nom,
+        initiales,
+        actif: true,
+        cree_le: '',
+      })),
+    });
+  });
+
+  // Tout ce qui suit exige une session ouverte.
+  api.use((req, res, next) => {
+    const agent = agentCourant(req);
+    if (!agent) {
+      res.status(401).json({ erreur: 'Session expirée. Reconnectez-vous.' });
+      return;
+    }
+    req.agent = agent;
+    next();
+  });
+
+  // --- Agents ---------------------------------------------------------------
+
+  api.get('/agents', (req, res) => {
+    res.json({ agents: listerAgents(db, { inclureInactifs: true }) });
+  });
+
+  api.post('/agents', (req, res) => {
+    const corps = req.body ?? {};
+    res.status(201).json({ agent: creerAgent(db, corps) });
+  });
+
+  api.put('/agents/:id', (req, res) => {
+    res.json({ agent: modifierAgent(db, Number(req.params.id), req.body ?? {}) });
+  });
+
+  api.put('/agents/:id/mot-de-passe', (req, res) => {
+    const corps = req.body ?? {};
+    const id = Number(req.params.id);
+
+    if (corps.reinitialiser) {
+      const motDePasse = reinitialiserMotDePasse(db, id);
+      res.json({ agent: null, mot_de_passe: motDePasse });
+      return;
+    }
+
+    changerMotDePasse(db, id, corps.mot_de_passe);
+    // Changer son propre mot de passe ne doit pas déconnecter le poste.
+    res.status(204).end();
   });
 
   // --- Paramètres -----------------------------------------------------------
@@ -90,7 +204,9 @@ export function creerApp(options) {
       const date = corps.date ?? dateDuJour();
       if (!estDateValide(date)) throw new ErreurValidation('Date invalide.');
 
-      const agent = validerAgent(db, corps.agent);
+      // L'agent est celui de la session : le client n'a pas à le dire, et
+      // ne peut donc pas signer à la place d'un collègue.
+      const agent = req.agent.initiales;
       const quantites = normaliserQuantites(corps.detail ?? {});
       const cbCentimes = montantCentimes(corps.cb_centimes, 'La recette CB');
       const fondCentimes = montantCentimes(corps.fond_centimes, 'Le fond de caisse');
@@ -174,7 +290,7 @@ export function creerApp(options) {
     const date = corps.date ?? dateDuJour();
     if (!estDateValide(date)) throw new ErreurValidation('Date invalide.');
 
-    const agent = validerAgent(db, corps.agent);
+    const agent = req.agent.initiales;
     const motif = String(corps.motif ?? '').trim();
     if (!motif) {
       throw new ErreurValidation('Le motif de la sortie est obligatoire.');
