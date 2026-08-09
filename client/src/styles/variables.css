@@ -56,6 +56,13 @@
   --alerte: #cf6152;
   --alerte-clair: #fceeeb;
   --alerte-trait: #f2bcb2;
+
+  /* Un manque n'est pas une erreur : c'est un chiffre à vérifier. Il a sa
+     propre teinte, plus sourde que le rouge des messages d'erreur — un
+     panneau qu'on relit vingt fois par soir ne doit pas crier. */
+  --manque: #9d564a;
+  --manque-clair: #f7f0ed;
+  --manque-trait: #e4cdc6;
   --attention: #b8873a;
   --attention-clair: #fdf4e6;
   --attention-trait: #edd6ac;
