@@ -127,8 +127,87 @@ export class MagasinDemo {
     this.semer();
   }
 
+  /**
+   * Trois mois de journées plausibles avant les quatre dernières, pour que
+   * l'écran Statistiques ait de quoi montrer.
+   *
+   * La suite est déterministe : une démonstration doit être la même pour tout
+   * le monde, pas une loterie au rechargement.
+   */
+  private semerHistorique() {
+    let graine = 20_260_809;
+    const hasard = () => {
+      graine = (graine * 1_103_515_245 + 12_345) % 2_147_483_648;
+      return graine / 2_147_483_648;
+    };
+
+    /** Décompose un montant en coupures, en laissant de la monnaie plausible. */
+    const enCoupures = (centimes: number): Record<number, number> => {
+      const detail: Record<number, number> = {};
+      let reste = centimes;
+      for (const valeur of [...VALEURS_COUPURES].reverse()) {
+        if (reste <= 0) break;
+        let combien = Math.floor(reste / valeur);
+        // Une caisse d'accueil n'est pas faite que de gros billets : on n'en
+        // prend qu'une partie et le reste descend vers la monnaie.
+        if (valeur >= 500 && combien > 1) {
+          combien = Math.max(1, Math.round(combien * (0.45 + hasard() * 0.4)));
+        }
+        if (combien > 0) {
+          detail[valeur] = combien;
+          reste -= combien * valeur;
+        }
+      }
+      return detail;
+    };
+
+    for (let jours = 70; jours >= 5; jours -= 1) {
+      const date = ilYA(jours);
+      const [annee, mois, jour] = date.split('-').map(Number);
+      const jourSemaine = new Date(annee ?? 0, (mois ?? 1) - 1, jour ?? 1).getDay();
+      if (jourSemaine === 1) continue; // la piscine ferme le lundi
+
+      const weekend = jourSemaine === 0 || jourSemaine === 6;
+      const affluence = (weekend ? 1.5 : 1) * (0.78 + hasard() * 0.5);
+
+      this.validerJournee({
+        date,
+        agent: hasard() < 0.5 ? 'BR' : 'ML',
+        // Le détail vaut la recette *plus* le fond, qui reste dans le tiroir.
+        detail: enCoupures(Math.round(24_000 * affluence) + this.fondDefautCentimes),
+        cb_centimes: Math.round(38_000 * affluence),
+        // Le chèque est devenu rare : environ une journée sur quatre.
+        cheques_centimes: hasard() < 0.25 ? Math.round(3_500 + hasard() * 9_000) : 0,
+      });
+
+      // Une remise en banque tous les quinze jours, sinon le coffre gonflerait
+      // jusqu'à l'absurde.
+      if (jours % 14 === 0) {
+        const gros = this.inventaire().filter(
+          (ligne) => ligne.coupure_centimes >= 1000 && ligne.quantite > 2,
+        );
+        if (gros.length > 0) {
+          this.enregistrerSortie({
+            date,
+            agent: 'BR',
+            motif: 'Remise en banque',
+            detail: Object.fromEntries(
+              gros.map((ligne) => [
+                ligne.coupure_centimes,
+                Math.floor(ligne.quantite * 0.8),
+              ]),
+            ),
+            cheques_centimes: this.cheques().centimes,
+          });
+        }
+      }
+    }
+  }
+
   /** Quelques journées plausibles, pour que les écrans ne soient pas vides. */
   private semer() {
+    this.semerHistorique();
+
     const journees: {
       jours: number;
       agent: string;

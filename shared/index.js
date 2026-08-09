@@ -5,6 +5,9 @@
  * Aucun flottant, nulle part. La conversion en euros n'existe qu'à l'affichage.
  */
 
+// L'agrégation des recettes vit à part : elle ne parle pas de coupures.
+export * from './statistiques.js';
+
 /** Les 12 coupures acceptées, de la plus petite à la plus grande. */
 export const COUPURES = [
   { valeur: 1, type: 'piece', libelle: '1 centime' },

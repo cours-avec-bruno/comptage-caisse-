@@ -13,15 +13,17 @@ import { EcranConnexion } from './ecrans/EcranConnexion';
 import { EcranCoffre } from './ecrans/EcranCoffre';
 import { EcranComptage } from './ecrans/EcranComptage';
 import { EcranJournal } from './ecrans/EcranJournal';
+import { EcranStatistiques } from './ecrans/EcranStatistiques';
 import { ModaleParametres } from './ecrans/ModaleParametres';
 import { dateLongue } from './format';
 
-type Onglet = 'comptage' | 'coffre' | 'journal';
+type Onglet = 'comptage' | 'coffre' | 'journal' | 'statistiques';
 
 const ONGLETS: { cle: Onglet; libelle: string }[] = [
   { cle: 'comptage', libelle: 'Comptage du jour' },
   { cle: 'coffre', libelle: 'Coffre' },
   { cle: 'journal', libelle: 'Journal' },
+  { cle: 'statistiques', libelle: 'Statistiques' },
 ];
 
 export function App() {
@@ -196,6 +198,10 @@ export function App() {
 
         {onglet === 'journal' && (
           <EcranJournal journal={journal} mouvements={mouvements} />
+        )}
+
+        {onglet === 'statistiques' && (
+          <EcranStatistiques journal={journal} date={parametres.date_du_jour} />
         )}
       </main>
 

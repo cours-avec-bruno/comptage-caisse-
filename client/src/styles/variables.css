@@ -63,6 +63,15 @@
   --manque: #9d564a;
   --manque-clair: #f7f0ed;
   --manque-trait: #e4cdc6;
+
+  /* --- Moyens de paiement ----------------------------------------------
+     Trois teintes qui se distinguent au premier coup d'œil sans se disputer :
+     l'eau du bassin pour les espèces, un parme pour la carte, un ambre pour
+     les chèques. La couleur ne porte jamais l'information seule — chaque part
+     est aussi écrite en toutes lettres et en euros. */
+  --part-especes: #2f9db4;
+  --part-cb: #7a72c4;
+  --part-cheques: #c98a3e;
   --attention: #b8873a;
   --attention-clair: #fdf4e6;
   --attention-trait: #edd6ac;

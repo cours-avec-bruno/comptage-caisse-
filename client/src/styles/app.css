@@ -1210,3 +1210,297 @@ body.feuille-ouverte .app {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* --- Écran Statistiques ---------------------------------------------------
+   Un seul chiffre en tête, sa décomposition juste dessous, et l'évolution en
+   bas. La couleur ne dit jamais rien toute seule : chaque part est écrite en
+   euros et en pourcentage à côté de sa pastille. */
+
+.stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--gouttiere);
+  align-items: start;
+  margin-bottom: var(--gouttiere);
+}
+
+@media (max-width: 62rem) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stats__vedette,
+.stats__chiffres,
+.stats__histogramme,
+.stats__vide {
+  padding: var(--espace-6);
+  border-radius: var(--rayon-xl);
+}
+
+.stats__vide {
+  text-align: center;
+}
+
+.stats__vide p:first-child {
+  font-size: var(--taille-section);
+  letter-spacing: var(--tracking-section);
+  color: var(--encre-douce);
+  margin-bottom: var(--espace-2);
+}
+
+.stats__montant {
+  display: block;
+  margin-top: var(--espace-2);
+  font-size: var(--taille-vedette);
+  line-height: var(--leading-vedette);
+  letter-spacing: var(--tracking-vedette);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats__meta {
+  margin-top: var(--espace-2);
+  font-size: var(--taille-appoint);
+  line-height: var(--leading-appoint);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-douce);
+}
+
+.stats__evolution {
+  font-weight: 700;
+}
+
+.stats__evolution--hausse {
+  color: var(--succes);
+}
+
+.stats__evolution--baisse {
+  color: var(--manque);
+}
+
+/* --- La barre des parts --------------------------------------------------- */
+
+.barre-parts {
+  display: flex;
+  gap: 2px;
+  height: 1.25rem;
+  margin-top: var(--espace-5);
+  border-radius: var(--rayon-pilule);
+  overflow: hidden;
+  background: var(--surface-creuse);
+}
+
+.barre-parts__part {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.barre-parts__part--especes {
+  background: var(--part-especes);
+}
+
+.barre-parts__part--cb {
+  background: var(--part-cb);
+}
+
+.barre-parts__part--cheques {
+  background: var(--part-cheques);
+}
+
+.legende {
+  margin-top: var(--espace-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-1);
+}
+
+.legende__ligne {
+  display: grid;
+  grid-template-columns: 0.75rem minmax(0, 1fr) auto 3rem;
+  align-items: center;
+  gap: var(--espace-3);
+  padding: var(--espace-2) 0;
+  font-size: var(--taille-corps);
+}
+
+.legende__ligne + .legende__ligne {
+  border-top: 1px solid var(--trait);
+}
+
+.legende__pastille {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--rayon-pilule);
+}
+
+.legende__pastille--especes {
+  background: var(--part-especes);
+}
+
+.legende__pastille--cb {
+  background: var(--part-cb);
+}
+
+.legende__pastille--cheques {
+  background: var(--part-cheques);
+}
+
+.legende__nom {
+  color: var(--encre-douce);
+}
+
+.legende__montant {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.legende__part {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--encre-douce);
+}
+
+/* --- Les trois chiffres d'appoint ----------------------------------------- */
+
+.stats__chiffres {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-5);
+}
+
+.stats__chiffre strong {
+  display: block;
+  margin-top: var(--espace-1);
+  font-size: var(--taille-titre);
+  letter-spacing: var(--tracking-titre);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats__appoint {
+  display: block;
+  margin-top: var(--espace-1);
+  font-size: var(--taille-appoint);
+  line-height: var(--leading-appoint);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-effacee);
+}
+
+/* --- L'histogramme -------------------------------------------------------- */
+
+.stats__entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espace-5);
+}
+
+.stats__echelle {
+  flex: none;
+  font-size: var(--taille-etiquette);
+  line-height: var(--leading-etiquette);
+  letter-spacing: var(--tracking-etiquette);
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--encre-effacee);
+  text-align: right;
+}
+
+.stats__echelle strong {
+  display: block;
+  margin-top: var(--espace-1);
+  font-size: var(--taille-corps);
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--encre-douce);
+}
+
+.stats__entete h2 {
+  font-size: var(--taille-section);
+  letter-spacing: var(--tracking-section);
+  line-height: var(--leading-section);
+}
+
+.stats__entete p {
+  margin-top: var(--espace-1);
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-douce);
+}
+
+.histogramme {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--espace-2);
+  margin-top: var(--espace-5);
+}
+
+.histogramme {
+  justify-content: center;
+}
+
+/* Les colonnes s'étirent pour occuper la largeur, mais pas au point de
+   devenir des pavés quand il n'y a que quelques barres. */
+.histogramme__colonne {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 4.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-2);
+}
+
+/* La piste donne sa hauteur à la colonne ; la barre s'y appuie par le bas. */
+.histogramme__piste {
+  display: flex;
+  align-items: flex-end;
+  height: 11rem;
+}
+
+.histogramme__barre {
+  display: flex;
+  flex-direction: column-reverse;
+  width: 100%;
+  border-radius: var(--rayon-xs);
+  overflow: hidden;
+  background: var(--surface-creuse);
+  transition: opacity 140ms ease-out;
+}
+
+.histogramme__colonne:hover .histogramme__barre {
+  opacity: 0.82;
+}
+
+.histogramme__part {
+  flex-basis: 0;
+  min-height: 0;
+}
+
+.histogramme__part--especes {
+  background: var(--part-especes);
+}
+
+.histogramme__part--cb {
+  background: var(--part-cb);
+}
+
+.histogramme__part--cheques {
+  background: var(--part-cheques);
+}
+
+.histogramme__etiquette {
+  min-height: 1rem;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-effacee);
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .histogramme__barre {
+    transition: none;
+  }
+}
