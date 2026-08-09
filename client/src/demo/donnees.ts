@@ -25,6 +25,8 @@ export interface Mouvement {
 
 export interface Comptage extends LigneJournal {
   detail: { coupure_centimes: number; quantite: number }[];
+  /** Ce qui est réellement monté au coffre : le comptage moins le fond. */
+  verse_centimes: number;
 }
 
 const deuxChiffres = (valeur: number) => String(valeur).padStart(2, '0');
@@ -63,7 +65,17 @@ export interface AgentDemo {
 }
 
 export class MagasinDemo {
-  fondDefautCentimes = 10_000;
+  /** Ce qui reste dans le tiroir chaque soir. Le montant s'en déduit. */
+  fondComposition: Record<number, number> = {
+    2000: 2, 1000: 2, 500: 4, 100: 8, 50: 12, 20: 15, 10: 20, 5: 10, 2: 10, 1: 30,
+  };
+
+  get fondDefautCentimes(): number {
+    return Object.entries(this.fondComposition).reduce(
+      (somme, [coupure, quantite]) => somme + Number(coupure) * quantite,
+      0,
+    );
+  }
 
   agents: AgentDemo[] = [
     { id: 1, prenom: 'Bruno', nom: 'Ricci', initiales: 'BR', actif: true, cree_le: '', motDePasse: 'BRUNO' },
@@ -136,7 +148,6 @@ export class MagasinDemo {
         agent: journee.agent,
         detail: journee.detail,
         cb_centimes: journee.cb,
-        fond_centimes: this.fondDefautCentimes,
         cheques_centimes: journee.cheques?.centimes ?? 0,
       });
     }
@@ -212,7 +223,6 @@ export class MagasinDemo {
     agent: string;
     detail: Record<number, number>;
     cb_centimes: number;
-    fond_centimes: number;
     cheques_centimes: number;
   }): Comptage {
     const detail = Object.entries(corps.detail)
@@ -224,7 +234,17 @@ export class MagasinDemo {
       .sort((a, b) => a.coupure_centimes - b.coupure_centimes);
 
     const especes = totalCentimes(detail);
-    const recetteEspeces = especes - corps.fond_centimes;
+    const fondCentimes = this.fondDefautCentimes;
+    const recetteEspeces = especes - fondCentimes;
+
+    // Le fond reste dans le tiroir : ce qui monte au coffre est le comptage
+    // moins sa composition, coupure par coupure.
+    const versement = detail
+      .map((l) => ({
+        coupure_centimes: l.coupure_centimes,
+        quantite: l.quantite - (this.fondComposition[l.coupure_centimes] ?? 0),
+      }))
+      .filter((l) => l.quantite > 0);
 
     const comptage: Comptage = {
       id: this.prochainComptage,
@@ -232,9 +252,10 @@ export class MagasinDemo {
       agent: corps.agent,
       especes_centimes: especes,
       cb_centimes: corps.cb_centimes,
-      fond_centimes: corps.fond_centimes,
+      fond_centimes: fondCentimes,
       cheques_nombre: 0,
       cheques_centimes: corps.cheques_centimes,
+      verse_centimes: totalCentimes(versement) + corps.cheques_centimes,
       recette_especes_centimes: recetteEspeces,
       recette_centimes:
         recetteEspeces + corps.cb_centimes + corps.cheques_centimes,
@@ -244,7 +265,7 @@ export class MagasinDemo {
     this.prochainComptage += 1;
     this.comptages.push(comptage);
 
-    if (detail.length > 0 || corps.cheques_centimes > 0) {
+    if (versement.length > 0 || corps.cheques_centimes > 0) {
       this.mouvements.push({
         id: this.prochainMouvement,
         date: corps.date,
@@ -253,7 +274,7 @@ export class MagasinDemo {
         motif: `Versement du comptage du ${corps.date}`,
         comptage_id: comptage.id,
         cree_le: horodatage(),
-        detail,
+        detail: versement,
         cheques_nombre: 0,
         cheques_centimes: corps.cheques_centimes,
       });

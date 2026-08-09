@@ -201,12 +201,13 @@ describe('API de connexion', () => {
     const client = creerClient();
     await client('POST', '/api/connexion', { initiales: 'ML', mot_de_passe: 'MARIE' });
 
+    await client('PUT', '/api/parametres', { fond_composition: {} });
+
     // Le client tente de signer au nom de BR ; le serveur doit l'ignorer.
     const { corps } = await client('POST', '/api/comptages', {
       agent: 'BR',
       detail: { 5000: 1 },
       cb_centimes: 0,
-      fond_centimes: 0,
     });
     assert.equal(corps.comptage.agent, 'ML');
   });

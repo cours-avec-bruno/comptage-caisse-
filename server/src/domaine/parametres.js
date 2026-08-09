@@ -3,9 +3,13 @@
  * modifiables : ce ne sont pas des lignes de caisse.
  */
 
-import { ErreurValidation, montantCentimes } from './calculs.js';
+import {
+  ErreurValidation,
+  normaliserQuantites,
+  totalCentimes,
+} from './calculs.js';
 
-const CLES_AUTORISEES = new Set(['fond_defaut_centimes']);
+const CLES_AUTORISEES = new Set(['fond_composition']);
 
 /**
  * @param {import('better-sqlite3').Database} db
@@ -14,7 +18,41 @@ export function lireParametres(db) {
   const lignes = db.prepare('SELECT cle, valeur FROM parametres').all();
   const brut = Object.fromEntries(lignes.map((l) => [l.cle, l.valeur]));
 
-  return { fond_defaut_centimes: Number(brut.fond_defaut_centimes ?? 0) };
+  const composition = lireComposition(brut.fond_composition);
+
+  return {
+    fond_composition: Object.fromEntries(composition),
+    // Dérivé, jamais stocké : un montant mis de côté finirait par diverger de
+    // la composition, et c'est la composition qu'on retrouve dans le tiroir.
+    fond_defaut_centimes: totalCentimes(composition),
+  };
+}
+
+/**
+ * @param {string|undefined} json
+ * @returns {Map<number, number>}
+ */
+function lireComposition(json) {
+  if (!json) return new Map();
+  try {
+    return normaliserQuantites(JSON.parse(json));
+  } catch {
+    // Une composition illisible ne doit pas empêcher d'ouvrir l'application :
+    // on repart d'un fond vide, que les paramètres permettent de refaire.
+    return new Map();
+  }
+}
+
+/**
+ * Composition du fond de caisse, sous la forme attendue par les calculs.
+ * @param {import('better-sqlite3').Database} db
+ * @returns {Map<number, number>}
+ */
+export function fondDeCaisse(db) {
+  const ligne = db
+    .prepare("SELECT valeur FROM parametres WHERE cle = 'fond_composition'")
+    .get();
+  return lireComposition(ligne?.valeur);
 }
 
 /**
@@ -32,12 +70,12 @@ export function ecrireParametres(db, modifications) {
   /** @type {[string, string][]} */
   const aEcrire = [];
 
-  if ('fond_defaut_centimes' in modifications) {
-    const fond = montantCentimes(
-      modifications.fond_defaut_centimes,
-      'Le fond de caisse par défaut',
-    );
-    aEcrire.push(['fond_defaut_centimes', String(fond)]);
+  if ('fond_composition' in modifications) {
+    const composition = normaliserQuantites(modifications.fond_composition ?? {});
+    aEcrire.push([
+      'fond_composition',
+      JSON.stringify(Object.fromEntries(composition)),
+    ]);
   }
 
 

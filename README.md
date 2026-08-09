@@ -108,13 +108,30 @@ ancienne, avec le cumul en bas et les boutons d'export.
 - **La CB n'entre pas dans le coffre.** Elle compte dans la recette et dans le
   journal, jamais dans le solde. **Les chèques, eux, y entrent** : ils sont
   physiquement au coffre, donc ils comptent dans le solde.
-- **Valider une journée verse la totalité du comptage au coffre**, fond de caisse
-  compris. *(À confirmer avec le responsable : si le fond reste physiquement dans
-  la caisse le soir, il faudra saisir quelles coupures y restent, et la
-  validation changera — voir « Points ouverts ».)*
+- **Le fond de caisse reste dans le tiroir.** Valider une journée verse au
+  coffre le comptage **moins la composition du fond**, coupure par coupure — de
+  quoi rendre la monnaie le lendemain sans rouvrir le coffre.
 - Chaque opération est enregistrée avec les initiales de l'agent **connecté**,
   et non avec celles choisies dans un menu : le poste ne peut pas signer au nom
   d'un collègue.
+
+### Le fond de caisse
+
+Le fond n'est pas un montant, c'est une **composition** : tant de billets de 20,
+tant de pièces de 50 centimes. Elle se règle dans **Paramètres → Fond de
+caisse**, une fois pour toutes, et ce sont ces quantités qui sont retirées du
+versement à chaque validation.
+
+Le montant du fond ne se saisit pas : il se **déduit** de la composition, comme
+le solde du coffre se déduit de son inventaire. Un montant mis de côté finirait
+par diverger de ce qu'on trouve réellement dans le tiroir.
+
+Si le comptage du soir ne contient pas de quoi laisser le fond — par exemple 3
+pièces de 1 € alors que le fond en demande 8 — la validation est **refusée** et
+le message nomme les coupures qui manquent. Il faut alors recompter, ou ajuster
+la composition du fond.
+
+Au premier démarrage, un fond de 100 € tout fait est proposé.
 
 ### Les deux caisses du coffre
 
@@ -167,6 +184,7 @@ npm start          # sert l'API et le front buildé sur le port 4173
 | --------- | ---- |
 | `shared/` | Les 12 coupures, le formatage euro et la règle de rangement du coffre, partagés par l'API et le front |
 | `server/src/domaine/agents.js` | Agents, hachage `scrypt`, mots de passe |
+| `server/src/domaine/parametres.js` | Composition du fond de caisse |
 | `server/src/domaine/sessions.js` | Jetons de session et cookie |
 | `server/` | Express, SQLite (`better-sqlite3`), calculs, export, sauvegarde |
 | `client/` | Vite + React + TypeScript, CSS écrit à la main |
@@ -265,9 +283,6 @@ des tarifs ou des entrées.
 
 1. **Un seul coffre, ou plusieurs caisses à compter séparément ?** La v1 suppose
    un seul coffre. `contenant_id` est déjà en base pour accueillir la suite.
-2. **Le fond de caisse reste-t-il dans la caisse le soir, ou tout monte-t-il au
-   coffre ?** La v1 fait tout monter. Si le fond reste dans la caisse, il faudra
-   saisir quelles coupures y restent : le versement ne sera plus égal au
-   comptage, et `validerJournee` (`server/src/domaine/comptages.js`) devra
-   soustraire les coupures laissées avant de créer le mouvement. Le reste ne
-   bouge pas.
+2. ~~Le fond de caisse reste-t-il dans la caisse le soir ?~~ **Tranché : il
+   reste dans le tiroir.** Sa composition se règle dans les paramètres et ses
+   quantités sont retirées du versement à chaque validation.

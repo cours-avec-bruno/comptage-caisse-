@@ -13,13 +13,14 @@ beforeEach(() => {
   db = ouvrirBase(':memory:');
 });
 
-const valider = (date, quantites, { cb = 0, fond = 10_000, agent = 'BR' } = {}) =>
+/** Par défaut aucun fond laissé : la plupart de ces tests portent sur le coffre. */
+const valider = (date, quantites, { cb = 0, fond = {}, agent = 'BR' } = {}) =>
   validerJournee(db, {
     date,
     agent,
     quantites: normaliserQuantites(quantites),
     cbCentimes: cb,
-    fondCentimes: fond,
+    fond: normaliserQuantites(fond),
   });
 
 const quantiteAu = (coupure) =>
@@ -27,11 +28,16 @@ const quantiteAu = (coupure) =>
 
 describe('validation d’une journée', () => {
   it('crée le comptage, son détail et le versement au coffre', () => {
-    const comptage = valider('2026-08-07', { 5000: 2, 2000: 3, 100: 12 }, { cb: 22_350 });
+    const comptage = valider('2026-08-07', { 5000: 2, 2000: 3, 100: 12 }, {
+      cb: 22_350,
+      fond: { 2000: 1, 100: 8 },
+    });
 
     assert.equal(comptage.especes_centimes, 100_00 + 60_00 + 12_00);
-    assert.equal(comptage.recette_especes_centimes, 17_200 - 10_000);
-    assert.equal(comptage.recette_centimes, 7_200 + 22_350);
+    // Fond laissé : 1 × 20 € + 8 × 1 € = 28,00 €
+    assert.equal(comptage.fond_centimes, 2_800);
+    assert.equal(comptage.recette_especes_centimes, 17_200 - 2_800);
+    assert.equal(comptage.recette_centimes, 14_400 + 22_350);
 
     const detail = db
       .prepare('SELECT coupure_centimes, quantite FROM comptage_detail WHERE comptage_id = ?')
@@ -44,10 +50,11 @@ describe('validation d’une journée', () => {
     assert.equal(mouvements[0].comptage_id, comptage.id);
   });
 
-  it('verse la totalité du comptage au coffre, fond de caisse compris', () => {
-    valider('2026-08-07', { 5000: 2 }, { fond: 10_000 });
-    // 100 € comptés, 100 € au coffre : le fond monte aussi.
-    assert.equal(etatCoffre(db).solde_centimes, 10_000);
+  it('laisse le fond dans le tiroir : il ne monte pas au coffre', () => {
+    // 4 billets de 50 comptés, 1 laissé en fond : 3 montent.
+    valider('2026-08-07', { 5000: 4 }, { fond: { 5000: 1 } });
+    assert.equal(etatCoffre(db).solde_centimes, 15_000);
+    assert.equal(quantiteAu(5000), 3);
   });
 
   it('ne fait jamais entrer la CB au coffre', () => {
@@ -62,8 +69,34 @@ describe('validation d’une journée', () => {
     assert.throws(() => valider('2026-08-07', {}, { cb: 0 }), ErreurValidation);
   });
 
+  it('refuse quand le comptage ne couvre pas le fond, en nommant les coupures', () => {
+    const erreur = (() => {
+      try {
+        valider('2026-08-07', { 5000: 2, 100: 3 }, { fond: { 100: 8, 20: 15 } });
+        return null;
+      } catch (capturee) {
+        return capturee;
+      }
+    })();
+
+    assert.ok(erreur instanceof ErreurValidation);
+    assert.match(erreur.message, /1 euro/);
+    assert.match(erreur.message, /20 centimes/);
+    // Rien n'a été écrit.
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM comptages').get().n, 0);
+    assert.equal(etatCoffre(db).solde_centimes, 0);
+  });
+
+  it('ne verse rien quand le comptage est exactement le fond', () => {
+    const comptage = valider('2026-08-07', { 2000: 1 }, { fond: { 2000: 1 } });
+    assert.equal(comptage.mouvement_id, null);
+    assert.equal(comptage.verse_centimes, 0);
+    assert.equal(comptage.recette_especes_centimes, 0);
+    assert.equal(etatCoffre(db).solde_centimes, 0);
+  });
+
   it('accepte une journée sans espèces mais avec de la CB, sans mouvement de coffre', () => {
-    const comptage = valider('2026-08-07', {}, { cb: 4_500, fond: 0 });
+    const comptage = valider('2026-08-07', {}, { cb: 4_500 });
     assert.equal(comptage.mouvement_id, null);
     assert.equal(db.prepare('SELECT COUNT(*) n FROM mouvements_coffre').get().n, 0);
   });
@@ -226,9 +259,9 @@ describe('historique non modifiable', () => {
 
 describe('journal', () => {
   it('trie du plus récent au plus ancien et cumule en pied de tableau', () => {
-    valider('2026-08-05', { 2000: 5 }, { cb: 10_000, fond: 10_000 });
-    valider('2026-08-07', { 2000: 3 }, { cb: 5_000, fond: 10_000 });
-    valider('2026-08-06', { 2000: 4 }, { cb: 2_500, fond: 10_000 });
+    valider('2026-08-05', { 2000: 5 }, { cb: 10_000, fond: { 2000: 1 } });
+    valider('2026-08-07', { 2000: 3 }, { cb: 5_000, fond: { 2000: 1 } });
+    valider('2026-08-06', { 2000: 4 }, { cb: 2_500, fond: { 2000: 1 } });
 
     const { lignes, cumul } = journal(db);
     assert.deepEqual(
@@ -238,8 +271,8 @@ describe('journal', () => {
 
     assert.equal(cumul.especes_centimes, 10_000 + 8_000 + 6_000);
     assert.equal(cumul.cb_centimes, 17_500);
-    // 3 journées, fond de 100 € retiré à chacune.
-    assert.equal(cumul.recette_especes_centimes, 24_000 - 30_000);
-    assert.equal(cumul.recette_centimes, -6_000 + 17_500);
+    // 3 journées, fond de 20 € laissé à chacune.
+    assert.equal(cumul.recette_especes_centimes, 24_000 - 6_000);
+    assert.equal(cumul.recette_centimes, 18_000 + 17_500);
   });
 });

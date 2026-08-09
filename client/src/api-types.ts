@@ -5,6 +5,9 @@
  */
 
 export interface Parametres {
+  /** Quantités laissées dans le tiroir chaque soir, par coupure. */
+  fond_composition: Record<number, number>;
+  /** Dérivé de la composition, jamais stocké. */
   fond_defaut_centimes: number;
   date_du_jour: string;
 }
@@ -93,7 +96,7 @@ export interface ComptageDuJour {
 }
 
 export interface ReponseValidation {
-  comptage: LigneJournal & { mouvement_id: number | null };
+  comptage: LigneJournal & { mouvement_id: number | null; verse_centimes: number };
   sauvegarde: string | null;
   erreur_sauvegarde: string | null;
 }
@@ -150,7 +153,7 @@ export interface ClientApi {
 
   parametres(): Promise<Parametres>;
   enregistrerParametres(modifications: {
-    fond_defaut_centimes?: number;
+    fond_composition?: Record<number, number>;
   }): Promise<Omit<Parametres, 'date_du_jour'>>;
   coffre(): Promise<EtatCoffre>;
   journal(): Promise<Journal>;
@@ -160,7 +163,6 @@ export interface ClientApi {
     agent: string;
     detail: Record<number, number>;
     cb_centimes: number;
-    fond_centimes: number;
     cheques_centimes: number;
   }): Promise<ReponseValidation>;
   sortieCoffre(corps: {

@@ -153,6 +153,26 @@ export const MIGRATIONS = [
       DELETE FROM parametres WHERE cle = 'agents';
     `,
   },
+  {
+    nom: '005-fond-par-composition',
+    sql: `
+      -- Le fond de caisse cesse d'être un montant pour devenir une
+      -- composition : tant de billets de 20, tant de pièces de 50 centimes.
+      --
+      -- Sans elle, retirer le fond enlevait bien le montant de la recette,
+      -- mais laissait monter au coffre les pièces qui doivent rester dans le
+      -- tiroir pour rendre la monnaie le lendemain.
+      --
+      -- Le montant du fond n'est plus stocké : il se recalcule depuis la
+      -- composition, comme le solde du coffre depuis son inventaire.
+      INSERT INTO parametres (cle, valeur) VALUES (
+        'fond_composition',
+        '{"2000":2,"1000":2,"500":4,"100":8,"50":12,"20":15,"10":20,"5":10,"2":10,"1":30}'
+      );
+
+      DELETE FROM parametres WHERE cle = 'fond_defaut_centimes';
+    `,
+  },
 ];
 
 /**

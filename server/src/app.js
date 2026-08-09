@@ -11,7 +11,7 @@ import {
   journal,
   validerJournee,
 } from './domaine/comptages.js';
-import { ecrireParametres, lireParametres } from './domaine/parametres.js';
+import { ecrireParametres, fondDeCaisse, lireParametres } from './domaine/parametres.js';
 import {
   authentifier,
   changerSonMotDePasse,
@@ -232,15 +232,16 @@ export function creerApp(options) {
       const agent = req.agent.initiales;
       const quantites = normaliserQuantites(corps.detail ?? {});
       const cbCentimes = montantCentimes(corps.cb_centimes, 'La recette CB');
-      const fondCentimes = montantCentimes(corps.fond_centimes, 'Le fond de caisse');
       const cheques = lireCheques(corps);
 
+      // La composition du fond vient des paramètres, pas de la requête : elle
+      // est la même chaque soir, c'est tout l'intérêt.
       const comptage = validerJournee(db, {
         date,
         agent,
         quantites,
         cbCentimes,
-        fondCentimes,
+        fond: fondDeCaisse(db),
         cheques,
       });
 

@@ -81,8 +81,7 @@ export const apiHttp: ClientApi = {
   parametres: () => appeler<Parametres>('/parametres'),
 
   enregistrerParametres: (modifications: {
-    fond_defaut_centimes?: number;
-    agents?: string[];
+    fond_composition?: Record<number, number>;
   }) =>
     appeler<Omit<Parametres, 'date_du_jour'>>('/parametres', {
       method: 'PUT',
@@ -101,7 +100,7 @@ export const apiHttp: ClientApi = {
     agent: string;
     detail: Record<number, number>;
     cb_centimes: number;
-    fond_centimes: number;
+    cheques_centimes: number;
   }) =>
     appeler<ReponseValidation>('/comptages', {
       method: 'POST',

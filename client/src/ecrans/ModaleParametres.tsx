@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
 import { api, ErreurApi, MODE_DEMO, type Agent } from '../api';
+import { formaterEuros } from '../format';
 import { GestionAgents } from '../composants/GestionAgents';
-import { ChampEuros } from '../composants/ChampEuros';
+import {
+  GrilleSaisie,
+  detailPourApi,
+  totalSaisie,
+  type Quantites,
+} from '../composants/GrilleSaisie';
 import { Modale } from '../composants/Modale';
 
 interface Props {
-  fondDefautCentimes: number;
+  fondComposition: Record<number, number>;
   agentConnecte: Agent;
   origine?: { x: number; y: number } | null;
   onFermer: () => void;
@@ -13,13 +19,20 @@ interface Props {
 }
 
 export function ModaleParametres({
-  fondDefautCentimes,
+  fondComposition,
   agentConnecte,
   origine,
   onFermer,
   onEnregistre,
 }: Props) {
-  const [fond, setFond] = useState(fondDefautCentimes);
+  const [fond, setFond] = useState<Quantites>(() =>
+    Object.fromEntries(
+      Object.entries(fondComposition).map(([coupure, quantite]) => [
+        coupure,
+        String(quantite),
+      ]),
+    ),
+  );
   const [sauvegardes, setSauvegardes] = useState<
     { fichier: string; modifie_le: string }[]
   >([]);
@@ -41,7 +54,7 @@ export function ModaleParametres({
     setErreur(null);
     setEnCours(true);
     try {
-      await api.enregistrerParametres({ fond_defaut_centimes: fond });
+      await api.enregistrerParametres({ fond_composition: detailPourApi(fond) });
       onEnregistre();
       onFermer();
     } catch (probleme) {
@@ -78,14 +91,15 @@ export function ModaleParametres({
       {erreur && <div className="message message--erreur">{erreur}</div>}
 
       <div>
-        <label className="etiquette" htmlFor="fond-defaut">
-          Fond de caisse par défaut
-        </label>
-        <ChampEuros id="fond-defaut" valeur={fond} onChange={setFond} />
-        <p className="panneau__note" style={{ textAlign: 'left', marginTop: 6 }}>
-          Valeur proposée chaque soir sur l'écran de comptage. Elle reste modifiable
-          journée par journée.
+        <span className="etiquette">
+          Fond de caisse — {formaterEuros(totalSaisie(fond))}
+        </span>
+        <p className="panneau__note panneau__note--gauche" style={{ marginBottom: 12 }}>
+          Ces quantités restent dans le tiroir chaque soir et sont retirées du
+          versement au coffre, coupure par coupure. Le montant se déduit de la
+          composition : il n'est pas saisi.
         </p>
+        <GrilleSaisie quantites={fond} onChange={setFond} compact />
       </div>
 
       <GestionAgents agentConnecte={agentConnecte} />

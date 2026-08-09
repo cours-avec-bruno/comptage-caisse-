@@ -19,7 +19,7 @@ const valider = (options = {}) =>
     agent: 'BR',
     quantites: normaliserQuantites(options.detail ?? {}),
     cbCentimes: options.cb ?? 0,
-    fondCentimes: options.fond ?? 0,
+    fond: normaliserQuantites(options.fond ?? {}),
     cheques: options.cheques ?? { nombre: 0, centimes: 0 },
   });
 
