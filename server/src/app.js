@@ -4,7 +4,12 @@ import express from 'express';
 
 import { ErreurValidation, montantCentimes, normaliserQuantites } from './domaine/calculs.js';
 import { dateDuJour, estDateValide } from './domaine/dates.js';
-import { etatCoffre, enregistrerSortie, inventaire } from './domaine/coffre.js';
+import {
+  etatCoffre,
+  enregistrerChange,
+  enregistrerSortie,
+  inventaire,
+} from './domaine/coffre.js';
 import {
   comptagesDuJour,
   detailComptage,
@@ -298,12 +303,21 @@ export function creerApp(options) {
     res.json({
       mouvements: mouvements.map((m) => {
         const detail = parMouvement.get(m.id) ?? [];
+        const valeur = (signe) =>
+          detail
+            .filter((l) => Math.sign(l.quantite) === signe)
+            .reduce((somme, l) => somme + l.coupure_centimes * l.quantite, 0);
+
         return {
           ...m,
           detail,
+          // Effet sur le solde : nul pour un change, c'est tout son intérêt.
           montant_centimes:
             detail.reduce((somme, l) => somme + l.coupure_centimes * l.quantite, 0) +
             m.cheques_centimes,
+          // Ce qui a bougé, quand même : un change de 50 € déplace 50 €.
+          entrees_centimes: valeur(1) + Math.max(0, m.cheques_centimes),
+          sorties_centimes: -valeur(-1) - Math.min(0, m.cheques_centimes),
         };
       }),
     });
@@ -325,6 +339,29 @@ export function creerApp(options) {
     const sortie = enregistrerSortie(db, { date, agent, motif, quantites, cheques });
 
     res.status(201).json({ sortie, coffre: etatCoffre(db) });
+  });
+
+  api.post('/coffre/changes', (req, res) => {
+    const corps = req.body ?? {};
+    const date = corps.date ?? dateDuJour();
+    if (!estDateValide(date)) throw new ErreurValidation('Date invalide.');
+
+    const agent = req.agent.initiales;
+    // Contrairement à une sortie, le motif d'un change se devine : on fait la
+    // monnaie. On le laisse libre, avec une valeur par défaut parlante.
+    const motif = String(corps.motif ?? '').trim() || 'Monnaie';
+
+    const entrantes = normaliserQuantites(corps.entrantes ?? {});
+    const sortantes = normaliserQuantites(corps.sortantes ?? {});
+    const change = enregistrerChange(db, {
+      date,
+      agent,
+      motif,
+      entrantes,
+      sortantes,
+    });
+
+    res.status(201).json({ change, coffre: etatCoffre(db) });
   });
 
   // --- Export et sauvegardes ------------------------------------------------

@@ -53,6 +53,45 @@
   height: 3rem;
 }
 
+/* Variante serrée : deux grilles côte à côte dans une même feuille (le
+   change). La valeur ligne à ligne disparaît — ce qu'on surveille alors,
+   c'est le total de chaque colonne et l'écart entre les deux. */
+.grille--serree .grille__ligne,
+.grille--serree .grille__total {
+  grid-template-columns: 2.75rem minmax(5.5rem, 1fr) minmax(4.5rem, 6rem);
+  gap: var(--espace-2);
+  margin-left: var(--espace-2);
+  margin-right: var(--espace-2);
+  padding: var(--espace-1) var(--espace-2);
+}
+
+.grille--serree .grille__ligne .grille__valeur {
+  display: none;
+}
+
+.grille--serree .grille__total {
+  margin-top: var(--espace-3);
+  padding: var(--espace-3) var(--espace-2);
+}
+
+/* Le pied du total n'a plus que trois cellules : la case vide du milieu
+   n'a plus lieu d'être. */
+.grille--serree .grille__total > span:nth-child(3) {
+  display: none;
+}
+
+.grille--serree .grille__jeton {
+  height: 2.25rem;
+}
+
+.grille--serree .grille__section {
+  padding: var(--espace-3) var(--espace-4) var(--espace-1);
+}
+
+.grille--serree .grille__aide {
+  display: none;
+}
+
 .grille__nom {
   font-weight: 600;
 }

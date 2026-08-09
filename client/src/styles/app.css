@@ -213,6 +213,62 @@ body.feuille-ouverte .app {
   gap: var(--espace-2);
 }
 
+/* Une deuxième section dans un même écran : elle respire au-dessus, mais
+   son titre reste plus petit que celui de l'écran. */
+.entete-ecran--section {
+  margin-top: var(--espace-7);
+}
+
+.entete-ecran--section h2 {
+  font-size: var(--taille-section);
+  letter-spacing: var(--tracking-section);
+  line-height: var(--leading-section);
+}
+
+/* --- Historique du coffre ------------------------------------------------- */
+
+.pastille-mouvement {
+  display: inline-block;
+  padding: 0.1875rem 0.625rem;
+  border-radius: var(--rayon-pilule);
+  font-size: var(--taille-etiquette);
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pastille-mouvement--versement {
+  background: var(--succes-clair);
+  color: var(--succes);
+}
+
+.pastille-mouvement--sortie {
+  background: var(--manque-clair);
+  color: var(--manque);
+}
+
+/* Un change ne fait ni entrer ni sortir d'argent : ni vert, ni rouge. */
+.pastille-mouvement--change {
+  background: var(--accent-clair);
+  color: var(--accent-fort);
+}
+
+.detail-mouvement {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espace-1) var(--espace-3);
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
+  font-variant-numeric: tabular-nums;
+  color: var(--encre-douce);
+  white-space: nowrap;
+}
+
+.detail-mouvement__part--sortante {
+  color: var(--manque);
+}
+
 /* --- Écran Comptage ------------------------------------------------------ */
 
 .comptage {
@@ -679,6 +735,12 @@ body.feuille-ouverte .app {
   }
 }
 
+/* Deux grilles côte à côte demandent de la largeur ; en dessous, elles
+   repassent l'une sous l'autre (voir plus bas). */
+.feuille--large {
+  max-width: 52rem;
+}
+
 .feuille__prise {
   touch-action: none;
   cursor: grab;
@@ -749,6 +811,51 @@ body.feuille-ouverte .app {
 .feuille__actions {
   display: flex;
   gap: var(--espace-2);
+}
+
+/* Un change qui ne s'équilibre pas : le pied dit ce qu'il reste à faire. */
+.feuille__total--manque,
+.feuille__total--manque strong {
+  color: var(--manque);
+}
+
+/* --- Change de monnaie ---------------------------------------------------- */
+
+.change {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espace-5);
+  align-items: start;
+}
+
+@media (max-width: 52rem) {
+  .change {
+    grid-template-columns: 1fr;
+  }
+}
+
+.change__cote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-2);
+  min-width: 0;
+}
+
+.change__entete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espace-3);
+}
+
+.change__entete .etiquette {
+  margin: 0;
+}
+
+.change__somme {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--encre-douce);
 }
 
 /* --- Chèques -------------------------------------------------------------- */

@@ -3,6 +3,7 @@ import type { EtatCoffre, LigneCaisse } from '../api';
 import { Jeton } from '../composants/Jeton';
 import { COUPURES } from '../coupures';
 import { dateLongue, formaterEuros } from '../format';
+import { ModaleChange } from './ModaleChange';
 import { ModaleSortie } from './ModaleSortie';
 
 interface Props {
@@ -88,6 +89,14 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
   const [origineSortie, setOrigineSortie] = useState<{ x: number; y: number } | null>(
     null,
   );
+  const [origineChange, setOrigineChange] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+
+  const depuisLeBouton = (evenement: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = evenement.currentTarget.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  };
   const [message, setMessage] = useState<string | null>(null);
 
   const coffreVide = coffre.solde_centimes === 0;
@@ -149,6 +158,24 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
           </button>
           <button
             type="button"
+            className="bouton"
+            disabled={coffreVide || !agent}
+            title={
+              coffreVide
+                ? 'Le coffre est vide'
+                : !agent
+                  ? 'Sélectionnez vos initiales en haut à droite'
+                  : 'Échanger des coupures sans toucher au solde'
+            }
+            onClick={(evenement) => {
+              setMessage(null);
+              setOrigineChange(depuisLeBouton(evenement));
+            }}
+          >
+            Faire la monnaie
+          </button>
+          <button
+            type="button"
             className="bouton bouton--principal"
             disabled={coffreVide || !agent}
             title={
@@ -160,11 +187,7 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
             }
             onClick={(evenement) => {
               setMessage(null);
-              const rect = evenement.currentTarget.getBoundingClientRect();
-              setOrigineSortie({
-                x: rect.left + rect.width / 2,
-                y: rect.top + rect.height / 2,
-              });
+              setOrigineSortie(depuisLeBouton(evenement));
             }}
           >
             Sortie du coffre
@@ -227,6 +250,23 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
             />
           </section>
         </div>
+      )}
+
+      {origineChange && (
+        <ModaleChange
+          date={date}
+          agent={agent}
+          inventaire={coffre.inventaire}
+          origine={origineChange}
+          onFermer={() => setOrigineChange(null)}
+          onEnregistre={(montant) => {
+            setOrigineChange(null);
+            setMessage(
+              `Change enregistré : ${formaterEuros(montant)} échangés, le solde du coffre est inchangé.`,
+            );
+            onChangement();
+          }}
+        />
       )}
 
       {origineSortie && (

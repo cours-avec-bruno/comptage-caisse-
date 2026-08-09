@@ -7,6 +7,7 @@ import {
   type ComptageDuJour,
   type EtatCoffre,
   type Journal,
+  type MouvementCoffre,
   type Parametres,
   type ReponseValidation,
 } from './api-types';
@@ -117,6 +118,21 @@ export const apiHttp: ClientApi = {
       '/coffre/sorties',
       { method: 'POST', body: JSON.stringify(corps) },
     ),
+
+  changeCoffre: (corps: {
+    date: string;
+    agent: string;
+    motif: string;
+    entrantes: Record<number, number>;
+    sortantes: Record<number, number>;
+  }) =>
+    appeler<{ change: { id: number; montant_centimes: number }; coffre: EtatCoffre }>(
+      '/coffre/changes',
+      { method: 'POST', body: JSON.stringify(corps) },
+    ),
+
+  mouvementsCoffre: () =>
+    appeler<{ mouvements: MouvementCoffre[] }>('/coffre/mouvements'),
 
   sauvegardes: () =>
     appeler<{

@@ -173,32 +173,106 @@ export const MIGRATIONS = [
       DELETE FROM parametres WHERE cle = 'fond_defaut_centimes';
     `,
   },
+  {
+    nom: '006-change-de-monnaie',
+    sql: `
+      -- Un troisième type de mouvement : le change.
+      --
+      -- Faire la monnaie sur un billet de 50 ne fait ni entrer ni sortir
+      -- d'argent du coffre : le solde ne bouge pas, seule sa composition
+      -- change. L'écrire comme une sortie suivie d'un versement aurait menti
+      -- deux fois dans l'historique et gonflé les totaux de la journée.
+      --
+      -- SQLite ne sait pas modifier une contrainte CHECK : la procédure
+      -- officielle est de reconstruire la table. Les lignes sont recopiées
+      -- telles quelles, identifiant compris — aucune n'est modifiée, aucune
+      -- n'est perdue — et les triggers qui interdisent d'y toucher sont
+      -- replacés sur la table reconstruite.
+      CREATE TABLE mouvements_coffre_nouveau (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        contenant_id     INTEGER NOT NULL DEFAULT 1,
+        date             TEXT    NOT NULL,
+        agent            TEXT    NOT NULL,
+        type             TEXT    NOT NULL
+                         CHECK (type IN ('versement', 'sortie', 'change')),
+        motif            TEXT    NOT NULL,
+        comptage_id      INTEGER REFERENCES comptages (id),
+        cree_le          TEXT    NOT NULL,
+        cheques_nombre   INTEGER NOT NULL DEFAULT 0,
+        cheques_centimes INTEGER NOT NULL DEFAULT 0
+      );
+
+      INSERT INTO mouvements_coffre_nouveau
+        (id, contenant_id, date, agent, type, motif, comptage_id, cree_le,
+         cheques_nombre, cheques_centimes)
+      SELECT id, contenant_id, date, agent, type, motif, comptage_id, cree_le,
+             cheques_nombre, cheques_centimes
+        FROM mouvements_coffre;
+
+      DROP TABLE mouvements_coffre;
+      ALTER TABLE mouvements_coffre_nouveau RENAME TO mouvements_coffre;
+
+      CREATE INDEX idx_mouvements_date ON mouvements_coffre (date DESC, id DESC);
+
+      CREATE TRIGGER mouvements_pas_de_maj
+        BEFORE UPDATE ON mouvements_coffre
+        BEGIN SELECT RAISE(ABORT, 'Un mouvement de coffre ne se modifie pas'); END;
+
+      CREATE TRIGGER mouvements_pas_de_suppression
+        BEFORE DELETE ON mouvements_coffre
+        BEGIN SELECT RAISE(ABORT, 'Un mouvement de coffre ne se supprime pas'); END;
+    `,
+  },
 ];
 
 /**
  * Applique les migrations manquantes. Idempotent.
+ *
+ * Les clés étrangères sont désactivées le temps des migrations : changer une
+ * contrainte CHECK oblige SQLite à reconstruire la table, donc à la déposer
+ * un instant alors que ses lignes filles existent encore. Le contrôle est
+ * remis ensuite, et la base entière est vérifiée avant qu'on la rende — une
+ * ligne orpheline ferait échouer l'ouverture plutôt que d'attendre le
+ * premier calcul de solde.
+ *
  * @param {import('better-sqlite3').Database} db
  * @returns {string[]} noms des migrations appliquées lors de cet appel
  */
 export function migrer(db) {
   const version = db.pragma('user_version', { simple: true });
   const appliquees = [];
+  const clesEtrangeres = db.pragma('foreign_keys', { simple: true });
 
-  for (let i = version; i < MIGRATIONS.length; i += 1) {
-    const migration = MIGRATIONS[i];
-    db.exec('BEGIN');
-    try {
-      db.exec(migration.sql);
-      db.pragma(`user_version = ${i + 1}`);
-      db.exec('COMMIT');
-    } catch (erreur) {
-      db.exec('ROLLBACK');
+  // Un PRAGMA n'a aucun effet à l'intérieur d'une transaction : celui-ci se
+  // pose ici, avant le premier BEGIN.
+  if (clesEtrangeres) db.pragma('foreign_keys = OFF');
+
+  try {
+    for (let i = version; i < MIGRATIONS.length; i += 1) {
+      const migration = MIGRATIONS[i];
+      db.exec('BEGIN');
+      try {
+        db.exec(migration.sql);
+        db.pragma(`user_version = ${i + 1}`);
+        db.exec('COMMIT');
+      } catch (erreur) {
+        db.exec('ROLLBACK');
+        throw new Error(
+          `Migration « ${migration.nom} » échouée : ${erreur.message}`,
+          { cause: erreur },
+        );
+      }
+      appliquees.push(migration.nom);
+    }
+
+    const orphelines = db.pragma('foreign_key_check');
+    if (orphelines.length > 0) {
       throw new Error(
-        `Migration « ${migration.nom} » échouée : ${erreur.message}`,
-        { cause: erreur },
+        `Migration incohérente : ${orphelines.length} ligne(s) sans parent.`,
       );
     }
-    appliquees.push(migration.nom);
+  } finally {
+    if (clesEtrangeres) db.pragma('foreign_keys = ON');
   }
 
   return appliquees;

@@ -298,6 +298,86 @@ describe('API sortie de coffre', () => {
   });
 });
 
+describe('API change de monnaie', () => {
+  beforeEach(async () => {
+    await appeler('POST', '/api/comptages', {
+      date: '2026-08-07',
+      detail: { 5000: 4, 2000: 2 },
+      cb_centimes: 0,
+    });
+  });
+
+  it('refuse ce qui ne s’équilibre pas ou que le coffre n’a pas, puis accepte', async () => {
+    const { statut, corps } = await appeler('POST', '/api/coffre/changes', {
+      date: '2026-08-08',
+      entrantes: { 2000: 1 },
+      sortantes: { 5000: 0, 1000: 0, 500: 4 },
+    });
+
+    assert.equal(statut, 400, 'le coffre n’a pas de billets de 5 €');
+    assert.match(corps.erreur, /monnaie/i);
+
+    const reussi = await appeler('POST', '/api/coffre/changes', {
+      date: '2026-08-08',
+      entrantes: { 5000: 1 },
+      sortantes: { 2000: 2, 1000: 1 },
+    });
+    assert.equal(reussi.statut, 400, 'le coffre n’a pas de billets de 10 €');
+
+    const echange = await appeler('POST', '/api/coffre/changes', {
+      date: '2026-08-08',
+      motif: 'Monnaie sur un billet de 50',
+      entrantes: { 2000: 2 },
+      sortantes: { 5000: 1, 2000: 0 },
+    });
+    assert.equal(echange.statut, 400, 'les montants ne s’équilibrent pas');
+
+    const bon = await appeler('POST', '/api/coffre/changes', {
+      date: '2026-08-08',
+      entrantes: { 2000: 1, 1000: 3 },
+      sortantes: { 5000: 1 },
+    });
+    assert.equal(bon.statut, 201);
+    assert.equal(bon.corps.change.montant_centimes, 5_000);
+    assert.equal(bon.corps.coffre.solde_centimes, 24_000);
+  });
+
+  it('donne un motif par défaut plutôt que d’exiger une saisie', async () => {
+    const { statut } = await appeler('POST', '/api/coffre/changes', {
+      entrantes: { 2000: 1, 1000: 3 },
+      sortantes: { 5000: 1 },
+    });
+    assert.equal(statut, 201);
+
+    const { corps } = await appeler('GET', '/api/coffre/mouvements');
+    const change = corps.mouvements.find((m) => m.type === 'change');
+    assert.equal(change.motif, 'Monnaie');
+  });
+
+  it('apparaît dans l’historique, sans effet sur le solde mais chiffré', async () => {
+    await appeler('POST', '/api/coffre/changes', {
+      date: '2026-08-08',
+      motif: 'Monnaie sur un billet de 50',
+      entrantes: { 2000: 1, 1000: 3 },
+      sortantes: { 5000: 1 },
+    });
+
+    const { corps } = await appeler('GET', '/api/coffre/mouvements');
+    const change = corps.mouvements.find((m) => m.type === 'change');
+
+    assert.ok(change, 'le change doit figurer dans l’historique');
+    assert.equal(change.motif, 'Monnaie sur un billet de 50');
+    assert.equal(change.montant_centimes, 0, 'un change ne déplace pas le solde');
+    assert.equal(change.entrees_centimes, 5_000);
+    assert.equal(change.sorties_centimes, 5_000);
+    assert.deepEqual(change.detail, [
+      { coupure_centimes: 1000, quantite: 3 },
+      { coupure_centimes: 2000, quantite: 1 },
+      { coupure_centimes: 5000, quantite: -1 },
+    ]);
+  });
+});
+
 describe('API export', () => {
   it('sert les trois CSV en pièce jointe', async () => {
     await appeler('POST', '/api/comptages', {
