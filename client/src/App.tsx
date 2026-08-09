@@ -3,10 +3,12 @@ import {
   api,
   ErreurApi,
   MODE_DEMO,
+  type Agent,
   type EtatCoffre,
   type Journal,
   type Parametres,
 } from './api';
+import { EcranConnexion } from './ecrans/EcranConnexion';
 import { EcranCoffre } from './ecrans/EcranCoffre';
 import { EcranComptage } from './ecrans/EcranComptage';
 import { EcranJournal } from './ecrans/EcranJournal';
@@ -21,15 +23,13 @@ const ONGLETS: { cle: Onglet; libelle: string }[] = [
   { cle: 'journal', libelle: 'Journal' },
 ];
 
-/** Les initiales choisies restent sur ce poste d'un soir à l'autre. */
-const CLE_AGENT = 'caisse.agent';
-
 export function App() {
   const [onglet, setOnglet] = useState<Onglet>('comptage');
   const [parametres, setParametres] = useState<Parametres | null>(null);
   const [coffre, setCoffre] = useState<EtatCoffre | null>(null);
   const [journal, setJournal] = useState<Journal | null>(null);
-  const [agent, setAgent] = useState(() => localStorage.getItem(CLE_AGENT) ?? '');
+  // `undefined` = on ne sait pas encore ; `null` = personne n'est connecté.
+  const [agent, setAgent] = useState<Agent | null | undefined>(undefined);
   const [origineParametres, setOrigineParametres] = useState<
     { x: number; y: number } | null
   >(null);
@@ -46,24 +46,47 @@ export function App() {
       setCoffre(nouveauCoffre);
       setJournal(nouveauJournal);
       setErreur(null);
-
-      // Des initiales retirées des paramètres ne doivent pas rester actives.
-      setAgent((actuel) =>
-        actuel && nouveauxParametres.agents.includes(actuel) ? actuel : '',
-      );
     } catch (probleme) {
+      // Une session expirée en cours de service renvoie à la connexion
+      // plutôt que d'afficher une erreur qu'on ne peut pas corriger.
+      if (probleme instanceof ErreurApi && /session/i.test(probleme.message)) {
+        setAgent(null);
+        return;
+      }
       setErreur(probleme instanceof ErreurApi ? probleme.message : 'Erreur inattendue.');
     }
   }, []);
 
+  // Au démarrage : qui est connecté sur ce poste ?
   useEffect(() => {
-    void charger();
-  }, [charger]);
+    api
+      .session()
+      .then(({ agent: connecte }) => setAgent(connecte))
+      .catch(() => setAgent(null));
+  }, []);
 
   useEffect(() => {
-    if (agent) localStorage.setItem(CLE_AGENT, agent);
-    else localStorage.removeItem(CLE_AGENT);
-  }, [agent]);
+    if (agent) void charger();
+  }, [agent, charger]);
+
+  const deconnecter = async () => {
+    await api.deconnexion().catch(() => undefined);
+    setAgent(null);
+    // Le poste est rendu au suivant : il doit retrouver l'écran de comptage,
+    // pas l'onglet où le précédent s'était arrêté.
+    setOnglet('comptage');
+    setParametres(null);
+    setCoffre(null);
+    setJournal(null);
+  };
+
+  if (agent === undefined) {
+    return <div className="chargement">Chargement…</div>;
+  }
+
+  if (agent === null) {
+    return <EcranConnexion onConnecte={setAgent} />;
+  }
 
   if (erreur && !parametres) {
     return (
@@ -111,21 +134,14 @@ export function App() {
         <div className="barre__droite">
           <span className="barre__date">{dateLongue(parametres.date_du_jour)}</span>
 
-          <div className={`selecteur-agent${agent ? '' : ' selecteur-agent--vide'}`}>
-            <label htmlFor="agent">Agent</label>
-            <select
-              id="agent"
-              value={agent}
-              onChange={(evenement) => setAgent(evenement.target.value)}
-            >
-              <option value="">— choisir —</option>
-              {parametres.agents.map((initiales) => (
-                <option key={initiales} value={initiales}>
-                  {initiales}
-                </option>
-              ))}
-            </select>
+          <div className="agent-connecte" title={`${agent.prenom} ${agent.nom}`}>
+            <span className="badge-agent">{agent.initiales}</span>
+            <span className="agent-connecte__prenom">{agent.prenom}</span>
           </div>
+
+          <button type="button" className="bouton bouton--discret" onClick={deconnecter}>
+            Déconnexion
+          </button>
 
           <button
             type="button"
@@ -156,7 +172,7 @@ export function App() {
         {onglet === 'comptage' && (
           <EcranComptage
             date={parametres.date_du_jour}
-            agent={agent}
+            agent={agent.initiales}
             fondDefautCentimes={parametres.fond_defaut_centimes}
             onVersement={charger}
           />
@@ -166,7 +182,7 @@ export function App() {
           <EcranCoffre
             coffre={coffre}
             date={parametres.date_du_jour}
-            agent={agent}
+            agent={agent.initiales}
             onChangement={charger}
           />
         )}
@@ -177,7 +193,7 @@ export function App() {
       {origineParametres && (
         <ModaleParametres
           fondDefautCentimes={parametres.fond_defaut_centimes}
-          agents={parametres.agents}
+          agentConnecte={agent}
           origine={origineParametres}
           onFermer={() => setOrigineParametres(null)}
           onEnregistre={charger}

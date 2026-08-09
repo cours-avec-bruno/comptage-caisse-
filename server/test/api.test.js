@@ -18,8 +18,6 @@ let base;
 beforeEach(async () => {
   bacASable = fs.mkdtempSync(path.join(os.tmpdir(), 'caisse-api-'));
   db = ouvrirBase(path.join(bacASable, 'caisse.db'));
-  db.prepare("UPDATE parametres SET valeur = 'BR,ML' WHERE cle = 'agents'").run();
-
   const app = creerApp({
     db,
     dossierSauvegardes: path.join(bacASable, 'sauvegardes'),
@@ -30,6 +28,8 @@ beforeEach(async () => {
     serveur = app.listen(0, resoudre);
   });
   base = `http://127.0.0.1:${serveur.address().port}`;
+  cookie = '';
+  await seConnecter();
 });
 
 afterEach(async () => {
@@ -38,12 +38,20 @@ afterEach(async () => {
   fs.rmSync(bacASable, { recursive: true, force: true });
 });
 
+/** Cookie de session, conservé d'un appel à l'autre comme le ferait un navigateur. */
+let cookie = '';
+
 const appeler = async (methode, chemin, corps) => {
   const reponse = await fetch(`${base}${chemin}`, {
     method: methode,
-    headers: corps ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+      ...(corps ? { 'Content-Type': 'application/json' } : {}),
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
     body: corps ? JSON.stringify(corps) : undefined,
   });
+  const recu = reponse.headers.get('set-cookie');
+  if (recu) cookie = recu.split(';')[0];
   const texte = await reponse.text();
   const type = reponse.headers.get('content-type') ?? '';
   return {
@@ -52,22 +60,23 @@ const appeler = async (methode, chemin, corps) => {
   };
 };
 
+/** Ouvre une session : toute l'API la réclame désormais. */
+const seConnecter = (initiales = 'BR', motDePasse = 'BRUNO') =>
+  appeler('POST', '/api/connexion', { initiales, mot_de_passe: motDePasse });
+
 describe('API paramètres', () => {
-  it('expose le fond par défaut, les agents et la date du jour', async () => {
+  it('expose le fond par défaut et la date du jour', async () => {
     const { statut, corps } = await appeler('GET', '/api/parametres');
     assert.equal(statut, 200);
     assert.equal(corps.fond_defaut_centimes, 10_000);
-    assert.deepEqual(corps.agents, ['BR', 'ML']);
     assert.match(corps.date_du_jour, /^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('enregistre un nouveau fond par défaut et de nouvelles initiales', async () => {
+  it('enregistre un nouveau fond par défaut', async () => {
     const { corps } = await appeler('PUT', '/api/parametres', {
       fond_defaut_centimes: 15_000,
-      agents: ['br', 'ml', 'JD'],
     });
     assert.equal(corps.fond_defaut_centimes, 15_000);
-    assert.deepEqual(corps.agents, ['BR', 'ML', 'JD']);
   });
 
   it('refuse un fond par défaut en euros décimaux', async () => {
@@ -82,7 +91,6 @@ describe('API comptage', () => {
   it('valide une journée, verse au coffre et sauvegarde la base', async () => {
     const { statut, corps } = await appeler('POST', '/api/comptages', {
       date: '2026-08-07',
-      agent: 'BR',
       detail: { 5000: 2, 2000: 3, 100: 12 },
       cb_centimes: 22_350,
       fond_centimes: 10_000,
@@ -100,20 +108,18 @@ describe('API comptage', () => {
     assert.equal(coffre.corps.inventaire.length, 12);
   });
 
-  it('refuse des initiales inconnues', async () => {
-    const { statut, corps } = await appeler('POST', '/api/comptages', {
+  it('signe avec l’agent de la session, sans tenir compte du corps', async () => {
+    const { corps } = await appeler('POST', '/api/comptages', {
       agent: 'ZZ',
       detail: { 5000: 1 },
       cb_centimes: 0,
       fond_centimes: 0,
     });
-    assert.equal(statut, 400);
-    assert.match(corps.erreur, /Initiales inconnues/);
+    assert.equal(corps.comptage.agent, 'BR');
   });
 
   it('refuse une quantité décimale', async () => {
     const { statut } = await appeler('POST', '/api/comptages', {
-      agent: 'BR',
       detail: { 5000: 1.5 },
       cb_centimes: 0,
       fond_centimes: 0,
@@ -124,7 +130,6 @@ describe('API comptage', () => {
   it('signale les comptages déjà enregistrés pour une date', async () => {
     await appeler('POST', '/api/comptages', {
       date: '2026-08-07',
-      agent: 'BR',
       detail: { 5000: 1 },
       cb_centimes: 0,
       fond_centimes: 0,
@@ -139,7 +144,6 @@ describe('API comptage', () => {
     for (const date of ['2026-08-05', '2026-08-07', '2026-08-06']) {
       await appeler('POST', '/api/comptages', {
         date,
-        agent: 'ML',
         detail: { 2000: 5 },
         cb_centimes: 1_000,
         fond_centimes: 0,
@@ -159,7 +163,6 @@ describe('API sortie de coffre', () => {
   beforeEach(async () => {
     await appeler('POST', '/api/comptages', {
       date: '2026-08-07',
-      agent: 'BR',
       detail: { 5000: 4, 2000: 2 },
       cb_centimes: 0,
       fond_centimes: 0,
@@ -169,7 +172,6 @@ describe('API sortie de coffre', () => {
   it('enregistre une sortie et rend le coffre à jour', async () => {
     const { statut, corps } = await appeler('POST', '/api/coffre/sorties', {
       date: '2026-08-08',
-      agent: 'ML',
       motif: 'Remise en banque',
       detail: { 5000: 4 },
     });
@@ -181,7 +183,6 @@ describe('API sortie de coffre', () => {
 
   it('refuse une sortie sans motif', async () => {
     const { statut, corps } = await appeler('POST', '/api/coffre/sorties', {
-      agent: 'BR',
       motif: '   ',
       detail: { 5000: 1 },
     });
@@ -191,7 +192,6 @@ describe('API sortie de coffre', () => {
 
   it('refuse une sortie qui dépasse le stock et nomme les coupures', async () => {
     const { statut, corps } = await appeler('POST', '/api/coffre/sorties', {
-      agent: 'BR',
       motif: 'Remise en banque',
       detail: { 5000: 9 },
     });
@@ -210,14 +210,17 @@ describe('API sortie de coffre', () => {
 describe('API export', () => {
   it('sert les trois CSV en pièce jointe', async () => {
     await appeler('POST', '/api/comptages', {
-      agent: 'BR',
       detail: { 5000: 1 },
       cb_centimes: 0,
       fond_centimes: 0,
     });
 
     for (const nom of ['comptages', 'mouvements', 'inventaire']) {
-      const reponse = await fetch(`${base}/api/export/${nom}.csv`);
+      // Le navigateur joint le cookie sur une navigation directe ; ici il
+      // faut le passer à la main.
+      const reponse = await fetch(`${base}/api/export/${nom}.csv`, {
+        headers: { Cookie: cookie },
+      });
       assert.equal(reponse.status, 200);
       assert.match(reponse.headers.get('content-type'), /text\/csv/);
       assert.match(reponse.headers.get('content-disposition'), /attachment/);
@@ -229,6 +232,13 @@ describe('API export', () => {
     await appeler('POST', '/api/sauvegardes');
     const { corps } = await appeler('GET', '/api/sauvegardes');
     assert.equal(corps.fichiers.length, 1);
+  });
+});
+
+describe('export sans session', () => {
+  it('refuse de servir un CSV à qui n’est pas connecté', async () => {
+    const reponse = await fetch(`${base}/api/export/comptages.csv`);
+    assert.equal(reponse.status, 401);
   });
 });
 

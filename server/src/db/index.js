@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 
+import { amorcerAgents } from '../domaine/agents.js';
 import { migrer } from './migrations.js';
 
 /**
@@ -25,6 +26,9 @@ export function ouvrirBase(cheminFichier) {
   db.pragma('synchronous = FULL');
 
   migrer(db);
+  // Sans agent, personne ne peut se connecter : on en crée deux au premier
+  // démarrage. Le mot de passe de chacun est son prénom en majuscules.
+  amorcerAgents(db);
 
   return db;
 }

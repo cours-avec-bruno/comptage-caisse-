@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { api, ErreurApi, MODE_DEMO } from '../api';
+import { api, ErreurApi, MODE_DEMO, type Agent } from '../api';
+import { GestionAgents } from '../composants/GestionAgents';
 import { ChampEuros } from '../composants/ChampEuros';
 import { Modale } from '../composants/Modale';
 
 interface Props {
   fondDefautCentimes: number;
-  agents: string[];
+  agentConnecte: Agent;
   origine?: { x: number; y: number } | null;
   onFermer: () => void;
   onEnregistre: () => void;
@@ -13,13 +14,12 @@ interface Props {
 
 export function ModaleParametres({
   fondDefautCentimes,
-  agents,
+  agentConnecte,
   origine,
   onFermer,
   onEnregistre,
 }: Props) {
   const [fond, setFond] = useState(fondDefautCentimes);
-  const [listeAgents, setListeAgents] = useState(agents.join(', '));
   const [sauvegardes, setSauvegardes] = useState<
     { fichier: string; modifie_le: string }[]
   >([]);
@@ -41,13 +41,7 @@ export function ModaleParametres({
     setErreur(null);
     setEnCours(true);
     try {
-      await api.enregistrerParametres({
-        fond_defaut_centimes: fond,
-        agents: listeAgents
-          .split(',')
-          .map((initiales) => initiales.trim())
-          .filter(Boolean),
-      });
+      await api.enregistrerParametres({ fond_defaut_centimes: fond });
       onEnregistre();
       onFermer();
     } catch (probleme) {
@@ -94,23 +88,7 @@ export function ModaleParametres({
         </p>
       </div>
 
-      <div>
-        <label className="etiquette" htmlFor="agents">
-          Initiales des agents d'accueil
-        </label>
-        <input
-          id="agents"
-          className="champ"
-          type="text"
-          autoComplete="off"
-          placeholder="BR, ML, JD"
-          value={listeAgents}
-          onChange={(evenement) => setListeAgents(evenement.target.value)}
-        />
-        <p className="panneau__note" style={{ textAlign: 'left', marginTop: 6 }}>
-          Séparées par des virgules. Elles alimentent le sélecteur de la barre du haut.
-        </p>
-      </div>
+      <GestionAgents agentConnecte={agentConnecte} />
 
       <div>
         <span className="etiquette">Sauvegardes automatiques</span>

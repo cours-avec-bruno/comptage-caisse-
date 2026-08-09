@@ -5,7 +5,7 @@
 
 import { ErreurValidation, montantCentimes } from './calculs.js';
 
-const CLES_AUTORISEES = new Set(['fond_defaut_centimes', 'agents']);
+const CLES_AUTORISEES = new Set(['fond_defaut_centimes']);
 
 /**
  * @param {import('better-sqlite3').Database} db
@@ -14,13 +14,7 @@ export function lireParametres(db) {
   const lignes = db.prepare('SELECT cle, valeur FROM parametres').all();
   const brut = Object.fromEntries(lignes.map((l) => [l.cle, l.valeur]));
 
-  return {
-    fond_defaut_centimes: Number(brut.fond_defaut_centimes ?? 0),
-    agents: (brut.agents ?? '')
-      .split(',')
-      .map((initiales) => initiales.trim().toUpperCase())
-      .filter(Boolean),
-  };
+  return { fond_defaut_centimes: Number(brut.fond_defaut_centimes ?? 0) };
 }
 
 /**
@@ -46,22 +40,6 @@ export function ecrireParametres(db, modifications) {
     aEcrire.push(['fond_defaut_centimes', String(fond)]);
   }
 
-  if ('agents' in modifications) {
-    const brut = modifications.agents;
-    const liste = (Array.isArray(brut) ? brut : String(brut ?? '').split(','))
-      .map((initiales) => String(initiales).trim().toUpperCase())
-      .filter(Boolean);
-
-    if (liste.length === 0) {
-      throw new ErreurValidation('Il faut au moins une paire d’initiales.');
-    }
-    if (liste.some((initiales) => !/^[A-ZÀ-Ÿ]{1,4}$/.test(initiales))) {
-      throw new ErreurValidation(
-        'Des initiales font 1 à 4 lettres, sans chiffre ni espace.',
-      );
-    }
-    aEcrire.push(['agents', [...new Set(liste)].join(',')]);
-  }
 
   const requete = db.prepare(
     `INSERT INTO parametres (cle, valeur) VALUES (?, ?)
@@ -75,22 +53,3 @@ export function ecrireParametres(db, modifications) {
   return lireParametres(db);
 }
 
-/**
- * Vérifie que l'agent fourni fait partie de la liste connue.
- * @param {import('better-sqlite3').Database} db
- * @param {unknown} agent
- * @returns {string}
- */
-export function validerAgent(db, agent) {
-  const initiales = String(agent ?? '').trim().toUpperCase();
-  if (!initiales) {
-    throw new ErreurValidation('Sélectionnez vos initiales avant de valider.');
-  }
-  const { agents } = lireParametres(db);
-  if (!agents.includes(initiales)) {
-    throw new ErreurValidation(
-      `Initiales inconnues : ${initiales}. Ajoutez-les dans les paramètres.`,
-    );
-  }
-  return initiales;
-}

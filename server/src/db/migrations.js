@@ -121,6 +121,38 @@ export const MIGRATIONS = [
       ALTER TABLE mouvements_coffre ADD COLUMN cheques_centimes INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    nom: '004-agents-et-sessions',
+    sql: `
+      -- Les agents ne sont pas de l'historique : contrairement aux comptages,
+      -- ils se modifient. Aucun trigger ne les protège, et c'est voulu.
+      CREATE TABLE agents (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        prenom     TEXT    NOT NULL,
+        nom        TEXT    NOT NULL,
+        initiales  TEXT    NOT NULL UNIQUE,
+        mdp_hash   TEXT    NOT NULL,
+        mdp_sel    TEXT    NOT NULL,
+        actif      INTEGER NOT NULL DEFAULT 1,
+        cree_le    TEXT    NOT NULL
+      );
+
+      -- Le jeton de session vit en base plutôt qu'en mémoire : redémarrer
+      -- l'application ne doit pas déconnecter l'agent en plein comptage.
+      CREATE TABLE sessions (
+        jeton     TEXT    PRIMARY KEY,
+        agent_id  INTEGER NOT NULL REFERENCES agents (id),
+        cree_le   TEXT    NOT NULL,
+        expire_le TEXT    NOT NULL
+      );
+
+      CREATE INDEX idx_sessions_agent ON sessions (agent_id);
+
+      -- La liste d'initiales vivait dans les paramètres ; elle vit désormais
+      -- dans la table agents.
+      DELETE FROM parametres WHERE cle = 'agents';
+    `,
+  },
 ];
 
 /**
