@@ -107,6 +107,18 @@ du coffre** : tout ce qui y est entré, sorti ou a été échangé, coupure par
 coupure. Un change y figure avec un effet sur le solde de `0,00 €` — c'est
 exactement ce qu'il fait.
 
+**Statistiques** — ce que la caisse a encaissé, et par quel moyen. Une fenêtre
+au choix (7 jours, 30 jours, 3 mois, tout), la recette de la période en gros,
+puis sa décomposition **espèces / carte / chèques** : une barre pour la
+proportion, et juste dessous les montants et les parts en toutes lettres — la
+couleur ne porte jamais l'information toute seule. Dessous, l'évolution, dont le
+pas s'adapte à la fenêtre : par jour jusqu'à un mois, par semaine jusqu'à quatre,
+par mois au-delà.
+
+La moyenne est calculée **sur les journées travaillées**, pas sur les jours du
+calendrier : la piscine ferme, et diviser par des jours fermés dirait n'importe
+quoi. Rien n'est stocké — tout se recalcule depuis le journal.
+
 **Paramètres** — les agents, les sauvegardes et les exports. Rien à y valider :
 chaque action y prend effet immédiatement.
 
@@ -199,7 +211,7 @@ npm start          # sert l'API et le front buildé sur le port 4173
 
 | Dossier   | Rôle |
 | --------- | ---- |
-| `shared/` | Les 12 coupures, le formatage euro et la règle de rangement du coffre, partagés par l'API et le front |
+| `shared/` | Les 12 coupures, le formatage euro, la règle de rangement du coffre et l'agrégation des recettes, partagés par l'API et le front |
 | `server/src/domaine/agents.js` | Agents, hachage `scrypt`, mots de passe |
 | `server/src/domaine/parametres.js` | Composition du fond de caisse |
 | `server/src/domaine/sessions.js` | Jetons de session et cookie |

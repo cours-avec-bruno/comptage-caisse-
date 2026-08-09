@@ -148,6 +148,14 @@ textarea {
   box-shadow: 0 6px 20px rgb(47 149 115 / 0.34);
 }
 
+/* Choix exclusif d'une valeur (une période, par exemple) : le bouton retenu
+   se remplit, les autres restent des boutons ordinaires. */
+.bouton--onglet[aria-pressed='true'] {
+  background: var(--accent-clair);
+  color: var(--accent-fort);
+  box-shadow: none;
+}
+
 .bouton--danger {
   color: var(--alerte);
 }
