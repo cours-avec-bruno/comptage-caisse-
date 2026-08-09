@@ -216,16 +216,20 @@ export const apiDemo: ClientApi = {
 
   parametres: () =>
     repondre({
+      fond_composition: { ...magasin.fondComposition },
       fond_defaut_centimes: magasin.fondDefautCentimes,
       date_du_jour: dateLocale(),
     }),
 
   enregistrerParametres: (modifications) => {
     exigerSession();
-    if (modifications.fond_defaut_centimes !== undefined) {
-      magasin.fondDefautCentimes = modifications.fond_defaut_centimes;
+    if (modifications.fond_composition !== undefined) {
+      magasin.fondComposition = { ...modifications.fond_composition };
     }
-    return repondre({ fond_defaut_centimes: magasin.fondDefautCentimes });
+    return repondre({
+      fond_composition: { ...magasin.fondComposition },
+      fond_defaut_centimes: magasin.fondDefautCentimes,
+    });
   },
 
   coffre: () => repondre(etatCoffre()),
@@ -261,6 +265,26 @@ export const apiDemo: ClientApi = {
       );
     }
     const connecte = exigerSession();
+    // Le fond doit pouvoir être reconstitué avec ce qui a été compté.
+    const manquantes = Object.entries(magasin.fondComposition)
+      .filter(([coupure, attendu]) => (corps.detail[Number(coupure)] ?? 0) < attendu)
+      .map(([coupure, attendu]) => ({
+        coupure: Number(coupure),
+        fond: attendu,
+        compte: corps.detail[Number(coupure)] ?? 0,
+      }));
+
+    if (manquantes.length > 0) {
+      const details = manquantes
+        .map((m) => `${libelleCoupure(m.coupure)} (fond ${m.fond}, compté ${m.compte})`)
+        .join(', ');
+      return Promise.reject(
+        new ErreurApi(
+          `Le comptage ne permet pas de laisser le fond de caisse : ${details}. Recomptez, ou ajustez la composition du fond dans les paramètres.`,
+        ),
+      );
+    }
+
     const comptage = magasin.validerJournee({ ...corps, agent: connecte.initiales });
     return repondre({
       comptage: { ...comptage, mouvement_id: null },

@@ -194,6 +194,42 @@ export function coupuresInsuffisantes(inventaire, demande) {
 }
 
 /**
+ * Ce qui monte au coffre : le comptage moins le fond de caisse, coupure par
+ * coupure.
+ *
+ * Le fond reste physiquement dans le tiroir pour rendre la monnaie le
+ * lendemain. Retirer seulement son *montant* laissait monter ses pièces au
+ * coffre : le solde était juste, l'inventaire faux.
+ *
+ * @param {Map<number, number>} comptees
+ * @param {Map<number, number>} fond
+ * @returns {{versement: Map<number, number>, manquantes: {coupure_centimes: number, fond: number, compte: number}[]}}
+ */
+export function versementApresFond(comptees, fond) {
+  /** @type {Map<number, number>} */
+  const versement = new Map();
+  /** @type {{coupure_centimes: number, fond: number, compte: number}[]} */
+  const manquantes = [];
+
+  for (const [coupure, quantite] of comptees) {
+    const reste = quantite - (fond.get(coupure) ?? 0);
+    if (reste > 0) versement.set(coupure, reste);
+  }
+
+  // Une coupure du fond absente du comptage, ou en quantité insuffisante :
+  // le fond ne peut pas être reconstitué ce soir.
+  for (const [coupure, attendu] of fond) {
+    const compte = comptees.get(coupure) ?? 0;
+    if (compte < attendu) {
+      manquantes.push({ coupure_centimes: coupure, fond: attendu, compte });
+    }
+  }
+
+  manquantes.sort((a, b) => a.coupure_centimes - b.coupure_centimes);
+  return { versement, manquantes };
+}
+
+/**
  * Libellé lisible d'une coupure, pour les messages d'erreur et les CSV.
  * @param {number} centimes
  * @returns {string}

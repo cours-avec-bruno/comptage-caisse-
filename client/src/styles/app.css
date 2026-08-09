@@ -1019,3 +1019,12 @@ body.feuille-ouverte .app {
   line-height: var(--leading-appoint);
   color: var(--encre-douce);
 }
+
+/* Sous-libellé d'une ligne de calcul : précise sans alourdir. */
+.ligne-calcul__appoint {
+  display: block;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-appoint);
+  font-weight: 500;
+  color: var(--encre-effacee);
+}

@@ -30,6 +30,10 @@ beforeEach(async () => {
   base = `http://127.0.0.1:${serveur.address().port}`;
   cookie = '';
   await seConnecter();
+  // Ces tests portent sur le coffre et le journal : on neutralise le fond
+  // pour que le comptage monte entièrement au coffre. Une suite dédiée plus
+  // bas vérifie le comportement du fond.
+  await appeler('PUT', '/api/parametres', { fond_composition: {} });
 });
 
 afterEach(async () => {
@@ -65,25 +69,118 @@ const seConnecter = (initiales = 'BR', motDePasse = 'BRUNO') =>
   appeler('POST', '/api/connexion', { initiales, mot_de_passe: motDePasse });
 
 describe('API paramètres', () => {
-  it('expose le fond par défaut et la date du jour', async () => {
+  it('expose la composition du fond, son montant dérivé et la date du jour', async () => {
+    await appeler('PUT', '/api/parametres', { fond_composition: { 2000: 3, 50: 8 } });
     const { statut, corps } = await appeler('GET', '/api/parametres');
+
     assert.equal(statut, 200);
-    assert.equal(corps.fond_defaut_centimes, 10_000);
+    // 60 € + 4 € : le montant se déduit de la composition, il n'est pas stocké.
+    assert.equal(corps.fond_defaut_centimes, 6_400);
+    assert.deepEqual(corps.fond_composition, { 50: 8, 2000: 3 });
     assert.match(corps.date_du_jour, /^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('enregistre un nouveau fond par défaut', async () => {
-    const { corps } = await appeler('PUT', '/api/parametres', {
-      fond_defaut_centimes: 15_000,
-    });
-    assert.equal(corps.fond_defaut_centimes, 15_000);
+  it('propose au premier démarrage un fond de 100 € tout fait', async () => {
+    // Base neuve, avant le vidage fait par la mise en place.
+    const neuve = ouvrirBase(path.join(bacASable, 'neuve.db'));
+    const composition = JSON.parse(
+      neuve.prepare("SELECT valeur FROM parametres WHERE cle = 'fond_composition'").get()
+        .valeur,
+    );
+    const total = Object.entries(composition).reduce(
+      (somme, [coupure, quantite]) => somme + Number(coupure) * quantite,
+      0,
+    );
+    neuve.close();
+    assert.equal(total, 10_000);
   });
 
-  it('refuse un fond par défaut en euros décimaux', async () => {
+  it('enregistre une composition de fond et en dérive le montant', async () => {
+    const { corps } = await appeler('PUT', '/api/parametres', {
+      fond_composition: { 2000: 2, 100: 5, 20: 10 },
+    });
+    // 40 € + 5 € + 2 € = 47 €
+    assert.equal(corps.fond_defaut_centimes, 4_700);
+    assert.deepEqual(corps.fond_composition, { 20: 10, 100: 5, 2000: 2 });
+  });
+
+  it('refuse une composition avec une quantité décimale', async () => {
     const { statut } = await appeler('PUT', '/api/parametres', {
-      fond_defaut_centimes: 100.5,
+      fond_composition: { 2000: 1.5 },
     });
     assert.equal(statut, 400);
+  });
+
+  it('refuse une composition avec une coupure inconnue', async () => {
+    const { statut } = await appeler('PUT', '/api/parametres', {
+      fond_composition: { 300: 1 },
+    });
+    assert.equal(statut, 400);
+  });
+});
+
+describe('API fond de caisse', () => {
+  it('laisse le fond dans le tiroir et ne verse que le reste', async () => {
+    await appeler('PUT', '/api/parametres', {
+      fond_composition: { 2000: 1, 100: 5 },
+    });
+
+    const { corps } = await appeler('POST', '/api/comptages', {
+      date: '2026-08-07',
+      detail: { 5000: 2, 2000: 3, 100: 12 },
+      cb_centimes: 0,
+    });
+
+    // Compté 172 €, fond de 25 € laissé, 147 € versés.
+    assert.equal(corps.comptage.especes_centimes, 17_200);
+    assert.equal(corps.comptage.fond_centimes, 2_500);
+    assert.equal(corps.comptage.verse_centimes, 14_700);
+    assert.equal(corps.comptage.recette_especes_centimes, 14_700);
+
+    const coffre = await appeler('GET', '/api/coffre');
+    assert.equal(coffre.corps.solde_centimes, 14_700);
+
+    // Les coupures du fond sont restées : 2 billets de 20 et 7 pièces de 1 €.
+    const parCoupure = Object.fromEntries(
+      coffre.corps.inventaire.map((l) => [l.coupure_centimes, l.quantite]),
+    );
+    assert.equal(parCoupure[5000], 2);
+    assert.equal(parCoupure[2000], 2);
+    assert.equal(parCoupure[100], 7);
+  });
+
+  it('refuse la validation quand le comptage ne couvre pas le fond', async () => {
+    await appeler('PUT', '/api/parametres', {
+      fond_composition: { 100: 8, 20: 15 },
+    });
+
+    const { statut, corps } = await appeler('POST', '/api/comptages', {
+      detail: { 5000: 2, 100: 3 },
+      cb_centimes: 0,
+    });
+
+    assert.equal(statut, 400);
+    assert.match(corps.erreur, /fond de caisse/);
+    assert.match(corps.erreur, /1 euro/);
+    assert.match(corps.erreur, /20 centimes/);
+
+    // Rien n'a été écrit, ni comptage ni mouvement.
+    assert.equal((await appeler('GET', '/api/comptages')).corps.lignes.length, 0);
+    assert.equal((await appeler('GET', '/api/coffre')).corps.solde_centimes, 0);
+  });
+
+  it('ignore un fond envoyé par le client : il vient des paramètres', async () => {
+    await appeler('PUT', '/api/parametres', { fond_composition: { 2000: 1 } });
+
+    const { corps } = await appeler('POST', '/api/comptages', {
+      detail: { 2000: 3 },
+      cb_centimes: 0,
+      fond_centimes: 0,
+      fond_composition: {},
+    });
+
+    assert.equal(corps.comptage.fond_centimes, 2_000);
+    assert.equal(corps.comptage.verse_centimes, 4_000);
   });
 });
 
@@ -93,12 +190,11 @@ describe('API comptage', () => {
       date: '2026-08-07',
       detail: { 5000: 2, 2000: 3, 100: 12 },
       cb_centimes: 22_350,
-      fond_centimes: 10_000,
     });
 
     assert.equal(statut, 201);
     assert.equal(corps.comptage.especes_centimes, 17_200);
-    assert.equal(corps.comptage.recette_centimes, 7_200 + 22_350);
+    assert.equal(corps.comptage.recette_centimes, 17_200 + 22_350);
     assert.equal(corps.erreur_sauvegarde, null);
     assert.match(corps.sauvegarde, /^caisse_.*\.db$/);
 
@@ -113,7 +209,6 @@ describe('API comptage', () => {
       agent: 'ZZ',
       detail: { 5000: 1 },
       cb_centimes: 0,
-      fond_centimes: 0,
     });
     assert.equal(corps.comptage.agent, 'BR');
   });
@@ -122,7 +217,6 @@ describe('API comptage', () => {
     const { statut } = await appeler('POST', '/api/comptages', {
       detail: { 5000: 1.5 },
       cb_centimes: 0,
-      fond_centimes: 0,
     });
     assert.equal(statut, 400);
   });
@@ -132,7 +226,6 @@ describe('API comptage', () => {
       date: '2026-08-07',
       detail: { 5000: 1 },
       cb_centimes: 0,
-      fond_centimes: 0,
     });
 
     const { corps } = await appeler('GET', '/api/comptages/jour/2026-08-07');
@@ -146,7 +239,6 @@ describe('API comptage', () => {
         date,
         detail: { 2000: 5 },
         cb_centimes: 1_000,
-        fond_centimes: 0,
       });
     }
 
@@ -165,7 +257,6 @@ describe('API sortie de coffre', () => {
       date: '2026-08-07',
       detail: { 5000: 4, 2000: 2 },
       cb_centimes: 0,
-      fond_centimes: 0,
     });
   });
 
@@ -212,7 +303,6 @@ describe('API export', () => {
     await appeler('POST', '/api/comptages', {
       detail: { 5000: 1 },
       cb_centimes: 0,
-      fond_centimes: 0,
     });
 
     for (const nom of ['comptages', 'mouvements', 'inventaire']) {

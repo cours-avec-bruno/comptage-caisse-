@@ -4,9 +4,11 @@
 
 import {
   ErreurValidation,
+  libelleCoupure,
   recetteEspeces,
   recetteJour,
   totalCentimes,
+  versementApresFond,
 } from './calculs.js';
 import { horodatage } from './dates.js';
 import { insererMouvement } from './coffre.js';
@@ -15,9 +17,9 @@ import { insererMouvement } from './coffre.js';
  * Valide une journée : crée le comptage, son détail, et le versement au
  * coffre portant exactement le même détail.
  *
- * Règle v1 : la totalité du comptage monte au coffre, fond de caisse compris.
- * (Si le fond finit par rester physiquement dans la caisse le soir, c'est ici
- * qu'il faudra soustraire les coupures laissées avant de créer le versement.)
+ * Le fond de caisse **reste dans le tiroir** : ce qui monte au coffre est le
+ * comptage moins la composition du fond, coupure par coupure. C'est ce qui
+ * permet de rendre la monnaie le lendemain sans rouvrir le coffre.
  *
  * La CB n'entre jamais au coffre : elle ne figure dans aucun mouvement.
  *
@@ -27,7 +29,7 @@ import { insererMouvement } from './coffre.js';
  * @param {string} params.agent
  * @param {Map<number, number>} params.quantites
  * @param {number} params.cbCentimes
- * @param {number} params.fondCentimes
+ * @param {Map<number, number>} params.fond composition laissée dans le tiroir
  * @param {{nombre: number, centimes: number}} [params.cheques]
  */
 export function validerJournee(db, params) {
@@ -36,9 +38,11 @@ export function validerJournee(db, params) {
     agent,
     quantites,
     cbCentimes,
-    fondCentimes,
+    fond = new Map(),
     cheques = { nombre: 0, centimes: 0 },
   } = params;
+
+  const fondCentimes = totalCentimes(fond);
 
   if (quantites.size === 0 && cbCentimes === 0 && cheques.centimes === 0) {
     throw new ErreurValidation(
@@ -47,6 +51,21 @@ export function validerJournee(db, params) {
   }
 
   const especesCentimes = totalCentimes(quantites);
+
+  // Le fond doit pouvoir être reconstitué avec ce qui a été compté ce soir.
+  const { versement, manquantes } = versementApresFond(quantites, fond);
+  if (manquantes.length > 0) {
+    const details = manquantes
+      .map(
+        (m) =>
+          `${libelleCoupure(m.coupure_centimes)} (fond ${m.fond}, compté ${m.compte})`,
+      )
+      .join(', ');
+    throw new ErreurValidation(
+      `Le comptage ne permet pas de laisser le fond de caisse : ${details}. Recomptez, ou ajustez la composition du fond dans les paramètres.`,
+      { coupures: manquantes },
+    );
+  }
 
   const transaction = db.transaction(() => {
     const resultat = db
@@ -72,15 +91,15 @@ export function validerJournee(db, params) {
     }
 
     // Les chèques montent au coffre comme les espèces (caisse rouge).
-    // La CB, elle, n'y entre jamais.
+    // La CB, elle, n'y entre jamais. Le fond reste dans le tiroir.
     let mouvementId = null;
-    if (quantites.size > 0 || cheques.centimes > 0) {
+    if (versement.size > 0 || cheques.centimes > 0) {
       mouvementId = insererMouvement(db, {
         date,
         agent,
         type: 'versement',
         motif: `Versement du comptage du ${date}`,
-        quantites,
+        quantites: versement,
         cheques,
         comptageId,
       });
@@ -96,6 +115,7 @@ export function validerJournee(db, params) {
       fond_centimes: fondCentimes,
       cheques_nombre: cheques.nombre,
       cheques_centimes: cheques.centimes,
+      verse_centimes: totalCentimes(versement) + cheques.centimes,
       recette_especes_centimes: recetteEspeces(especesCentimes, fondCentimes),
       recette_centimes: recetteJour(
         especesCentimes, fondCentimes, cbCentimes, cheques.centimes,

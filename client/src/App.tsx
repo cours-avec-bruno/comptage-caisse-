@@ -192,7 +192,7 @@ export function App() {
 
       {origineParametres && (
         <ModaleParametres
-          fondDefautCentimes={parametres.fond_defaut_centimes}
+          fondComposition={parametres.fond_composition}
           agentConnecte={agent}
           origine={origineParametres}
           onFermer={() => setOrigineParametres(null)}

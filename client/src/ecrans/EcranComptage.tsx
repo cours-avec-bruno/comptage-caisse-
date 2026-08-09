@@ -23,15 +23,12 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
   const [quantites, setQuantites] = useState<Quantites>(quantitesVides);
   const [cbCentimes, setCbCentimes] = useState(0);
   const [chequesCentimes, setChequesCentimes] = useState(0);
-  const [fondCentimes, setFondCentimes] = useState(fondDefautCentimes);
   const [dejaValides, setDejaValides] = useState<ComptageDuJour[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [succes, setSucces] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
 
   const champCb = useRef<HTMLInputElement>(null);
-
-  useEffect(() => setFondCentimes(fondDefautCentimes), [fondDefautCentimes]);
 
   const rechargerJournee = () => {
     api
@@ -43,13 +40,15 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
   useEffect(rechargerJournee, [date]);
 
   const especesCentimes = totalSaisie(quantites);
-  const recetteEspeces = especesCentimes - fondCentimes;
+  // Le fond est fixe : il vient des paramètres, pas de la saisie du soir.
+  const recetteEspeces = especesCentimes - fondDefautCentimes;
   const recetteJour = recetteEspeces + cbCentimes + chequesCentimes;
   const rienASaisir =
     especesCentimes === 0 && cbCentimes === 0 && chequesCentimes === 0;
 
-  // Ce qui monte au coffre : les espèces et les chèques. Jamais la CB.
-  const versementCentimes = especesCentimes + chequesCentimes;
+  // Ce qui monte au coffre : les espèces moins le fond, plus les chèques.
+  // Jamais la CB, jamais le fond.
+  const versementCentimes = Math.max(0, especesCentimes - fondDefautCentimes) + chequesCentimes;
 
   const valider = async () => {
     setErreur(null);
@@ -62,15 +61,13 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
         agent,
         detail: detailPourApi(quantites),
         cb_centimes: cbCentimes,
-        fond_centimes: fondCentimes,
         cheques_centimes: chequesCentimes,
       });
 
-      const verse =
-        reponse.comptage.especes_centimes + reponse.comptage.cheques_centimes;
+      const verse = reponse.comptage.verse_centimes;
       setSucces(
         verse > 0
-          ? `Journée validée. ${formaterEuros(verse)} versés au coffre.`
+          ? `Journée validée. ${formaterEuros(verse)} versés au coffre, le fond reste dans le tiroir.`
           : 'Journée validée. Rien à verser au coffre.',
       );
       if (reponse.erreur_sauvegarde) {
@@ -82,7 +79,6 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
       setQuantites(quantitesVides());
       setCbCentimes(0);
       setChequesCentimes(0);
-      setFondCentimes(fondDefautCentimes);
       rechargerJournee();
       onVersement();
     } catch (probleme) {
@@ -140,11 +136,16 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
             </span>
           </div>
 
-          <div className="ligne-calcul ligne-calcul--saisie">
-            <label className="ligne-calcul__libelle" htmlFor="fond">
+          <div className="ligne-calcul">
+            <span className="ligne-calcul__libelle">
               Fond de caisse
-            </label>
-            <ChampEuros id="fond" valeur={fondCentimes} onChange={setFondCentimes} />
+              <span className="ligne-calcul__appoint">
+                laissé dans le tiroir
+              </span>
+            </span>
+            <span className="ligne-calcul__valeur">
+              − {formaterEuros(fondDefautCentimes)}
+            </span>
           </div>
 
           <div
@@ -199,7 +200,7 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
                 ? 'Sélectionnez vos initiales en haut à droite.'
                 : rienASaisir
                   ? 'Comptez au moins une coupure ou saisissez la recette CB.'
-                  : `${formaterEuros(versementCentimes)} monteront au coffre${chequesCentimes > 0 ? ' (espèces et chèques)' : ''}. La CB n'y entre jamais.`}
+                  : `${formaterEuros(versementCentimes)} monteront au coffre. Le fond reste dans le tiroir, la CB n'y entre jamais.`}
             </p>
           </div>
         </aside>
