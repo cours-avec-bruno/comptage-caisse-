@@ -10,16 +10,24 @@ import {
   type Quantites,
 } from '../composants/GrilleSaisie';
 import { MontantAnime } from '../composants/MontantAnime';
+import { ModaleFondDeCaisse } from './ModaleFondDeCaisse';
 import { dateLongue, formaterEuros } from '../format';
 
 interface Props {
   date: string;
   agent: string;
   fondDefautCentimes: number;
+  fondComposition: Record<number, number>;
   onVersement: () => void;
 }
 
-export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: Props) {
+export function EcranComptage({
+  date,
+  agent,
+  fondDefautCentimes,
+  fondComposition,
+  onVersement,
+}: Props) {
   const [quantites, setQuantites] = useState<Quantites>(quantitesVides);
   const [cbCentimes, setCbCentimes] = useState(0);
   const [chequesCentimes, setChequesCentimes] = useState(0);
@@ -29,6 +37,11 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
   const [enCours, setEnCours] = useState(false);
 
   const champCb = useRef<HTMLInputElement>(null);
+
+  // La feuille du fond s'ouvre depuis son bouton et y retourne.
+  const [origineFond, setOrigineFond] = useState<{ x: number; y: number } | null>(
+    null,
+  );
 
   const rechargerJournee = () => {
     api
@@ -138,10 +151,28 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
 
           <div className="ligne-calcul">
             <span className="ligne-calcul__libelle">
-              Fond de caisse
-              <span className="ligne-calcul__appoint">
-                laissé dans le tiroir
+              <span className="ligne-calcul__avec-action">
+                Fond de caisse
+                <button
+                  type="button"
+                  className="bouton-icone"
+                  aria-label="Modifier la composition du fond de caisse"
+                  title="Modifier la composition du fond de caisse"
+                  onClick={(evenement) => {
+                    const rect = evenement.currentTarget.getBoundingClientRect();
+                    setOrigineFond({
+                      x: rect.left + rect.width / 2,
+                      y: rect.top + rect.height / 2,
+                    });
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+                    <path d="M14.5 6.5 17.5 9.5" />
+                  </svg>
+                </button>
               </span>
+              <span className="ligne-calcul__appoint">laissé dans le tiroir</span>
             </span>
             <span className="ligne-calcul__valeur">
               − {formaterEuros(fondDefautCentimes)}
@@ -205,6 +236,15 @@ export function EcranComptage({ date, agent, fondDefautCentimes, onVersement }: 
           </div>
         </aside>
       </div>
+
+      {origineFond && (
+        <ModaleFondDeCaisse
+          composition={fondComposition}
+          origine={origineFond}
+          onFermer={() => setOrigineFond(null)}
+          onEnregistre={onVersement}
+        />
+      )}
     </>
   );
 }

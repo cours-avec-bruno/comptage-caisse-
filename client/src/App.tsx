@@ -174,6 +174,7 @@ export function App() {
             date={parametres.date_du_jour}
             agent={agent.initiales}
             fondDefautCentimes={parametres.fond_defaut_centimes}
+            fondComposition={parametres.fond_composition}
             onVersement={charger}
           />
         )}
@@ -192,11 +193,12 @@ export function App() {
 
       {origineParametres && (
         <ModaleParametres
-          fondComposition={parametres.fond_composition}
           agentConnecte={agent}
           origine={origineParametres}
-          onFermer={() => setOrigineParametres(null)}
-          onEnregistre={charger}
+          onFermer={() => {
+            setOrigineParametres(null);
+            void charger();
+          }}
         />
       )}
     </div>

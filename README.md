@@ -99,6 +99,9 @@ feuille se ferme à `Échap`, au bouton *Annuler*, ou en la tirant vers le bas.
 **Journal** — une ligne par journée validée, de la plus récente à la plus
 ancienne, avec le cumul en bas et les boutons d'export.
 
+**Paramètres** — les agents, les sauvegardes et les exports. Rien à y valider :
+chaque action y prend effet immédiatement.
+
 ## Ce qu'il faut savoir avant de s'en servir
 
 - **On ne modifie ni ne supprime jamais une ligne passée.** Une erreur se corrige
@@ -118,9 +121,11 @@ ancienne, avec le cumul en bas et les boutons d'export.
 ### Le fond de caisse
 
 Le fond n'est pas un montant, c'est une **composition** : tant de billets de 20,
-tant de pièces de 50 centimes. Elle se règle dans **Paramètres → Fond de
-caisse**, une fois pour toutes, et ce sont ces quantités qui sont retirées du
-versement à chaque validation.
+tant de pièces de 50 centimes. Elle se règle **depuis l'écran de comptage**, par
+le petit crayon à côté de la ligne « Fond de caisse » — c'est en comptant qu'on
+s'aperçoit qu'elle ne colle plus, il ne faut pas avoir à chercher où la
+corriger. Ce sont ces quantités qui sont retirées du versement à chaque
+validation.
 
 Le montant du fond ne se saisit pas : il se **déduit** de la composition, comme
 le solde du coffre se déduit de son inventaire. Un montant mis de côté finirait

@@ -1028,3 +1028,55 @@ body.feuille-ouverte .app {
   font-weight: 500;
   color: var(--encre-effacee);
 }
+
+/* --- Petit bouton d'action collé à un libellé --------------------------- */
+
+.ligne-calcul__avec-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espace-1);
+}
+
+/* Discret au repos, il se révèle au survol de la ligne : la ligne reste
+   calme, l'action reste trouvable. */
+.bouton-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--encre-effacee);
+  transition:
+    background 140ms ease-out,
+    color 140ms ease-out,
+    transform 110ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ligne-calcul:hover .bouton-icone,
+.bouton-icone:focus-visible {
+  background: var(--accent-clair);
+  color: var(--accent-fort);
+}
+
+.bouton-icone:hover {
+  background: var(--accent-clair);
+  color: var(--accent-fort);
+}
+
+.bouton-icone:active {
+  transform: scale(0.92);
+}
+
+.bouton-icone svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

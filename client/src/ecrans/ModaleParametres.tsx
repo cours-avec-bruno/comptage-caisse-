@@ -1,44 +1,29 @@
 import { useEffect, useState } from 'react';
-import { api, ErreurApi, MODE_DEMO, type Agent } from '../api';
-import { formaterEuros } from '../format';
+import { api, MODE_DEMO, type Agent } from '../api';
 import { GestionAgents } from '../composants/GestionAgents';
-import {
-  GrilleSaisie,
-  detailPourApi,
-  totalSaisie,
-  type Quantites,
-} from '../composants/GrilleSaisie';
 import { Modale } from '../composants/Modale';
 
 interface Props {
-  fondComposition: Record<number, number>;
   agentConnecte: Agent;
   origine?: { x: number; y: number } | null;
   onFermer: () => void;
-  onEnregistre: () => void;
 }
 
-export function ModaleParametres({
-  fondComposition,
-  agentConnecte,
-  origine,
-  onFermer,
-  onEnregistre,
-}: Props) {
-  const [fond, setFond] = useState<Quantites>(() =>
-    Object.fromEntries(
-      Object.entries(fondComposition).map(([coupure, quantite]) => [
-        coupure,
-        String(quantite),
-      ]),
-    ),
-  );
+/**
+ * Paramètres : agents, sauvegardes, exports.
+ *
+ * Il n'y a plus de bouton « Enregistrer » : chaque action de cet écran prend
+ * effet immédiatement, et un bouton qui ne ferait que fermer la feuille
+ * laisserait croire qu'on peut annuler ce qui est déjà fait.
+ *
+ * Le fond de caisse, lui, se règle depuis l'écran de comptage — à côté de la
+ * ligne qu'il explique.
+ */
+export function ModaleParametres({ agentConnecte, origine, onFermer }: Props) {
   const [sauvegardes, setSauvegardes] = useState<
     { fichier: string; modifie_le: string }[]
   >([]);
   const [dossier, setDossier] = useState('');
-  const [erreur, setErreur] = useState<string | null>(null);
-  const [enCours, setEnCours] = useState(false);
 
   useEffect(() => {
     api
@@ -50,20 +35,6 @@ export function ModaleParametres({
       .catch(() => undefined);
   }, []);
 
-  const enregistrer = async () => {
-    setErreur(null);
-    setEnCours(true);
-    try {
-      await api.enregistrerParametres({ fond_composition: detailPourApi(fond) });
-      onEnregistre();
-      onFermer();
-    } catch (probleme) {
-      setErreur(probleme instanceof ErreurApi ? probleme.message : 'Erreur inattendue.');
-    } finally {
-      setEnCours(false);
-    }
-  };
-
   return (
     <Modale
       titre="Paramètres"
@@ -73,35 +44,13 @@ export function ModaleParametres({
         <>
           <span className="feuille__total" />
           <div className="feuille__actions">
-            <button type="button" className="bouton" onClick={onFermer}>
-              Annuler
-            </button>
-            <button
-              type="button"
-              className="bouton bouton--principal"
-              disabled={enCours}
-              onClick={enregistrer}
-            >
-              {enCours ? 'Enregistrement…' : 'Enregistrer'}
+            <button type="button" className="bouton bouton--principal" onClick={onFermer}>
+              Fermer
             </button>
           </div>
         </>
       }
     >
-      {erreur && <div className="message message--erreur">{erreur}</div>}
-
-      <div>
-        <span className="etiquette">
-          Fond de caisse — {formaterEuros(totalSaisie(fond))}
-        </span>
-        <p className="panneau__note panneau__note--gauche" style={{ marginBottom: 12 }}>
-          Ces quantités restent dans le tiroir chaque soir et sont retirées du
-          versement au coffre, coupure par coupure. Le montant se déduit de la
-          composition : il n'est pas saisi.
-        </p>
-        <GrilleSaisie quantites={fond} onChange={setFond} compact />
-      </div>
-
       <GestionAgents agentConnecte={agentConnecte} />
 
       <div>
