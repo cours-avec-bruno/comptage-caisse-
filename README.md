@@ -43,8 +43,14 @@ Tout se passe dans **Paramètres → Agents d'accueil** :
 
 - **Ajouter** : prénom et nom suffisent. Les initiales se déduisent du nom, et
   le mot de passe initial est le prénom en majuscules.
-- **Mot de passe** : en saisir un nouveau, ou le *Réinitialiser* au prénom en
-  majuscules si quelqu'un l'a oublié.
+- **Mon mot de passe** : pour changer le sien, il faut donner l'ancien. Un
+  poste laissé ouvert une minute ne suffit donc pas à s'installer sur un
+  compte.
+- **Réinitialiser** celui d'un collègue : on ne le *choisit* jamais, on le remet
+  au prénom en majuscules, et la personne le change ensuite. Il faut confirmer
+  avec **son propre** mot de passe — sans quoi exiger l'ancien ne servirait à
+  rien : il suffirait de réinitialiser puis de se connecter à la place de
+  l'intéressé.
 - **Désactiver** : l'agent ne peut plus se connecter, mais son nom reste dans
   l'historique déjà écrit. On ne peut pas se désactiver soi-même, ni désactiver
   le dernier agent actif — plus personne ne pourrait entrer.
@@ -57,7 +63,9 @@ protégerait.
 
 Elle empêche qu'un visiteur passant derrière le comptoir ouvre l'application, et
 elle garantit qu'une opération est signée par la personne réellement connectée —
-le poste ne peut plus signer au nom d'un collègue.
+le poste ne peut plus signer au nom d'un collègue. Personne ne peut non plus
+fixer en douce le mot de passe d'un collègue à une valeur connue : une
+réinitialisation se voit, puisque l'intéressé ne peut plus entrer avec le sien.
 
 Elle ne protège pas contre quelqu'un qui connaît l'équipe : **un prénom en
 majuscules se devine**. Si l'application doit un jour compter pour un contrôle,

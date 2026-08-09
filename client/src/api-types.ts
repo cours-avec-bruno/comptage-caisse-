@@ -135,8 +135,18 @@ export interface ClientApi {
     id: number,
     modifications: { prenom?: string; nom?: string; actif?: boolean },
   ): Promise<{ agent: Agent }>;
-  changerMotDePasse(id: number, motDePasse: string): Promise<void>;
-  reinitialiserMotDePasse(id: number): Promise<{ mot_de_passe: string }>;
+  /** Son propre mot de passe : l'ancien est exigé. */
+  changerMotDePasse(
+    id: number,
+    ancien: string,
+    nouveau: string,
+  ): Promise<void>;
+  /** Celui d'un collègue : on ne le choisit pas, on le remet au prénom en
+      majuscules, en confirmant par le sien. */
+  reinitialiserMotDePasse(
+    id: number,
+    monMotDePasse: string,
+  ): Promise<{ mot_de_passe: string }>;
 
   parametres(): Promise<Parametres>;
   enregistrerParametres(modifications: {

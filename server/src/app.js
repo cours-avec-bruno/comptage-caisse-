@@ -14,8 +14,9 @@ import {
 import { ecrireParametres, lireParametres } from './domaine/parametres.js';
 import {
   authentifier,
-  changerMotDePasse,
+  changerSonMotDePasse,
   creerAgent,
+  motDePasseCorrect,
   listerAgents,
   modifierAgent,
   reinitialiserMotDePasse,
@@ -150,17 +151,39 @@ export function creerApp(options) {
     res.json({ agent: modifierAgent(db, Number(req.params.id), req.body ?? {}) });
   });
 
+  /**
+   * Deux chemins, et deux seulement :
+   *
+   *  - son propre mot de passe se change en donnant l'ancien ;
+   *  - celui d'un collègue ne se choisit pas, il se *réinitialise* au prénom
+   *    en majuscules — et il faut donner son propre mot de passe pour le
+   *    faire, sinon la première règle ne vaudrait rien : il suffirait de
+   *    réinitialiser puis de se connecter à la place de l'intéressé.
+   *
+   * Conséquence voulue : personne ne peut fixer en douce le mot de passe d'un
+   * collègue à une valeur qu'il connaît. Une réinitialisation se voit, puisque
+   * l'intéressé ne peut plus entrer avec le sien.
+   */
   api.put('/agents/:id/mot-de-passe', (req, res) => {
     const corps = req.body ?? {};
     const id = Number(req.params.id);
+    const soiMeme = id === req.agent.id;
 
     if (corps.reinitialiser) {
-      const motDePasse = reinitialiserMotDePasse(db, id);
-      res.json({ agent: null, mot_de_passe: motDePasse });
+      if (!motDePasseCorrect(db, req.agent.id, corps.mon_mot_de_passe)) {
+        throw new ErreurValidation('Votre mot de passe est incorrect.');
+      }
+      res.json({ mot_de_passe: reinitialiserMotDePasse(db, id) });
       return;
     }
 
-    changerMotDePasse(db, id, corps.mot_de_passe);
+    if (!soiMeme) {
+      throw new ErreurValidation(
+        'On ne choisit pas le mot de passe d’un collègue. Réinitialisez-le : il redevient le prénom en majuscules, à charge pour la personne de le changer.',
+      );
+    }
+
+    changerSonMotDePasse(db, id, corps.ancien_mot_de_passe, corps.mot_de_passe);
     // Changer son propre mot de passe ne doit pas déconnecter le poste.
     res.status(204).end();
   });

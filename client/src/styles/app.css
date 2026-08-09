@@ -1012,3 +1012,10 @@ body.feuille-ouverte .app {
 .panneau__note--gauche {
   text-align: left;
 }
+
+.agents__explication {
+  width: 100%;
+  font-size: var(--taille-appoint);
+  line-height: var(--leading-appoint);
+  color: var(--encre-douce);
+}

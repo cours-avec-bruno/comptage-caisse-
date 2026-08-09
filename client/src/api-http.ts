@@ -65,17 +65,17 @@ export const apiHttp: ClientApi = {
       body: JSON.stringify(modifications),
     }),
 
-  changerMotDePasse: async (id, motDePasse) => {
+  changerMotDePasse: async (id, ancien, nouveau) => {
     await appeler<void>(`/agents/${id}/mot-de-passe`, {
       method: 'PUT',
-      body: JSON.stringify({ mot_de_passe: motDePasse }),
+      body: JSON.stringify({ ancien_mot_de_passe: ancien, mot_de_passe: nouveau }),
     });
   },
 
-  reinitialiserMotDePasse: (id) =>
+  reinitialiserMotDePasse: (id, monMotDePasse) =>
     appeler<{ mot_de_passe: string }>(`/agents/${id}/mot-de-passe`, {
       method: 'PUT',
-      body: JSON.stringify({ reinitialiser: true }),
+      body: JSON.stringify({ reinitialiser: true, mon_mot_de_passe: monMotDePasse }),
     }),
 
   parametres: () => appeler<Parametres>('/parametres'),
