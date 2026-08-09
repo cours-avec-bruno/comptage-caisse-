@@ -282,7 +282,14 @@ body.feuille-ouverte .app {
 }
 
 .ligne-calcul--negatif .ligne-calcul__valeur {
-  color: var(--alerte);
+  color: var(--manque);
+}
+
+/* En attente : le tiroir n'est pas encore compté. Le chiffre n'existe pas
+   encore, on met un tiret plutôt qu'un négatif qui ne veut rien dire. */
+.ligne-calcul--attente .ligne-calcul__valeur {
+  color: var(--encre-effacee);
+  font-weight: 600;
 }
 
 /* La recette du jour est mise dans son propre bloc teinté : c'est le chiffre
@@ -309,14 +316,26 @@ body.feuille-ouverte .app {
 }
 
 /* Une recette négative se voit : il manque de l'argent, on ne l'habille pas
-   des couleurs de la réussite. */
+   des couleurs de la réussite. Mais pas non plus de celles de l'alarme : le
+   chiffre est sourd, c'est la note en dessous qui dit quoi faire. */
 .ligne-calcul--totale.ligne-calcul--negatif {
-  background: var(--alerte-clair);
+  background: var(--manque-clair);
 }
 
 .ligne-calcul--totale.ligne-calcul--negatif .ligne-calcul__libelle,
 .ligne-calcul--totale.ligne-calcul--negatif .ligne-calcul__valeur {
-  color: var(--alerte);
+  color: var(--manque);
+}
+
+/* Tant qu'il n'y a rien à totaliser, le bloc perd sa teinte : la couleur
+   d'accent arrive avec le chiffre, elle ne l'attend pas. */
+.ligne-calcul--totale.ligne-calcul--attente {
+  background: var(--surface-creuse);
+}
+
+.ligne-calcul--totale.ligne-calcul--attente .ligne-calcul__libelle,
+.ligne-calcul--totale.ligne-calcul--attente .ligne-calcul__valeur {
+  color: var(--encre-douce);
 }
 
 .panneau__pied {
@@ -337,6 +356,10 @@ body.feuille-ouverte .app {
 .panneau__note--alerte {
   color: var(--attention);
   text-align: left;
+}
+
+.panneau__note--manque {
+  color: var(--manque);
 }
 
 /* --- Écran Coffre -------------------------------------------------------- */
@@ -603,7 +626,7 @@ body.feuille-ouverte .app {
 }
 
 .montant-negatif {
-  color: var(--alerte);
+  color: var(--manque);
 }
 
 .montant-nul {

@@ -53,11 +53,20 @@ export function EcranComptage({
   useEffect(rechargerJournee, [date]);
 
   const especesCentimes = totalSaisie(quantites);
+  const coupuresComptees = nombreCoupures(quantites);
   // Le fond est fixe : il vient des paramètres, pas de la saisie du soir.
   const recetteEspeces = especesCentimes - fondDefautCentimes;
   const recetteJour = recetteEspeces + cbCentimes + chequesCentimes;
   const rienASaisir =
     especesCentimes === 0 && cbCentimes === 0 && chequesCentimes === 0;
+
+  // Tant que le tiroir n'a pas été compté, retrancher le fond revient à le
+  // soustraire de rien : l'écran annonçait « − 100,00 € » en rouge à l'agent
+  // qui n'avait encore rien saisi, alors qu'il ne manquait rien du tout.
+  // On n'affiche pas un chiffre qui n'existe pas encore.
+  const enAttenteDuComptage = fondDefautCentimes > 0 && coupuresComptees === 0;
+  // Un vrai manque, lui, se dit — et se chiffre.
+  const manqueCentimes = Math.max(0, -recetteEspeces);
 
   // Ce qui monte au coffre : les espèces moins le fond, plus les chèques.
   // Jamais la CB, jamais le fond.
@@ -145,7 +154,7 @@ export function EcranComptage({
             <span className="etiquette">Espèces comptées</span>
             <MontantAnime centimes={especesCentimes} />
             <span className="ligne-calcul__libelle">
-              {nombreCoupures(quantites)} coupures comptées
+              {coupuresComptees} {coupuresComptees < 2 ? 'coupure comptée' : 'coupures comptées'}
             </span>
           </div>
 
@@ -180,10 +189,23 @@ export function EcranComptage({
           </div>
 
           <div
-            className={`ligne-calcul${recetteEspeces < 0 ? ' ligne-calcul--negatif' : ''}`}
+            className={`ligne-calcul${
+              enAttenteDuComptage
+                ? ' ligne-calcul--attente'
+                : recetteEspeces < 0
+                  ? ' ligne-calcul--negatif'
+                  : ''
+            }`}
           >
-            <span className="ligne-calcul__libelle">Recette espèces</span>
-            <span className="ligne-calcul__valeur">{formaterEuros(recetteEspeces)}</span>
+            <span className="ligne-calcul__libelle">
+              Recette espèces
+              {enAttenteDuComptage && (
+                <span className="ligne-calcul__appoint">une fois le tiroir compté</span>
+              )}
+            </span>
+            <span className="ligne-calcul__valeur">
+              {enAttenteDuComptage ? '—' : formaterEuros(recetteEspeces)}
+            </span>
           </div>
 
           <div className="ligne-calcul ligne-calcul--saisie">
@@ -210,28 +232,46 @@ export function EcranComptage({
           </div>
 
           <div
-            className={`ligne-calcul ligne-calcul--totale${recetteJour < 0 ? ' ligne-calcul--negatif' : ''}`}
+            className={`ligne-calcul ligne-calcul--totale${
+              enAttenteDuComptage
+                ? ' ligne-calcul--attente'
+                : recetteJour < 0
+                  ? ' ligne-calcul--negatif'
+                  : ''
+            }`}
           >
             <span className="ligne-calcul__libelle">Recette du jour</span>
-            <span className="ligne-calcul__valeur">{formaterEuros(recetteJour)}</span>
+            <span className="ligne-calcul__valeur">
+              {enAttenteDuComptage ? '—' : formaterEuros(recetteJour)}
+            </span>
           </div>
 
           <div className="panneau__pied">
             <button
               type="button"
               className="bouton bouton--valider"
-              disabled={enCours || rienASaisir || !agent}
+              disabled={enCours || rienASaisir || enAttenteDuComptage || !agent}
               onClick={valider}
             >
               {enCours ? 'Enregistrement…' : 'Valider et verser au coffre'}
             </button>
 
-            <p className="panneau__note">
+            <p
+              className={`panneau__note${
+                !enAttenteDuComptage && manqueCentimes > 0
+                  ? ' panneau__note--manque'
+                  : ''
+              }`}
+            >
               {!agent
                 ? 'Sélectionnez vos initiales en haut à droite.'
-                : rienASaisir
-                  ? 'Comptez au moins une coupure ou saisissez la recette CB.'
-                  : `${formaterEuros(versementCentimes)} monteront au coffre. Le fond reste dans le tiroir, la CB n'y entre jamais.`}
+                : enAttenteDuComptage
+                  ? `Comptez le tiroir pour voir la recette. Le fond de caisse (${formaterEuros(fondDefautCentimes)}) doit s'y retrouver : il reste sur place.`
+                  : rienASaisir
+                    ? 'Comptez au moins une coupure ou saisissez la recette CB.'
+                    : manqueCentimes > 0
+                      ? `Il manque ${formaterEuros(manqueCentimes)} pour reconstituer le fond de caisse. Recomptez avant de valider.`
+                      : `${formaterEuros(versementCentimes)} monteront au coffre. Le fond reste dans le tiroir, la CB n'y entre jamais.`}
             </p>
           </div>
         </aside>
