@@ -222,6 +222,43 @@ export function changerMotDePasse(db, id, motDePasse) {
 }
 
 /**
+ * Vérifie le mot de passe d'un agent donné.
+ *
+ * Sert à deux endroits : confirmer l'ancien avant d'en changer, et confirmer
+ * le sien avant de réinitialiser celui d'un collègue.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {number} id
+ * @param {string} motDePasse
+ * @returns {boolean}
+ */
+export function motDePasseCorrect(db, id, motDePasse) {
+  const ligne = db.prepare('SELECT mdp_hash, mdp_sel FROM agents WHERE id = ?').get(id);
+  if (!ligne) return false;
+  return verifier(String(motDePasse ?? '').trim(), ligne.mdp_hash, ligne.mdp_sel);
+}
+
+/**
+ * Change son propre mot de passe. L'ancien est exigé : sans lui, un poste
+ * laissé ouvert une minute suffirait à verrouiller quelqu'un hors de son
+ * compte, ou à s'y installer.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {number} id
+ * @param {string} ancien
+ * @param {string} nouveau
+ */
+export function changerSonMotDePasse(db, id, ancien, nouveau) {
+  if (!motDePasseCorrect(db, id, ancien)) {
+    throw new ErreurValidation('Ancien mot de passe incorrect.');
+  }
+  if (String(nouveau ?? '').trim() === String(ancien ?? '').trim()) {
+    throw new ErreurValidation('Le nouveau mot de passe est identique à l’ancien.');
+  }
+  return changerMotDePasse(db, id, nouveau);
+}
+
+/**
  * Remet le mot de passe au prénom en majuscules.
  * @param {import('better-sqlite3').Database} db
  * @param {number} id

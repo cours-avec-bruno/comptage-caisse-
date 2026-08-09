@@ -18,6 +18,7 @@ export function GestionAgents({ agentConnecte }: Props) {
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [ouvert, setOuvert] = useState<number | null>(null);
+  const [ancien, setAncien] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -59,19 +60,26 @@ export function GestionAgents({ agentConnecte }: Props) {
       setNom('');
     });
 
-  const enregistrerMotDePasse = (agent: Agent) =>
+  const fermerPanneau = () => {
+    setOuvert(null);
+    setAncien('');
+    setMotDePasse('');
+  };
+
+  const enregistrerMotDePasse = () =>
     agir(async () => {
-      await api.changerMotDePasse(agent.id, motDePasse);
-      setMessage(`Mot de passe de ${agent.prenom} modifié.`);
-      setMotDePasse('');
-      setOuvert(null);
+      await api.changerMotDePasse(agentConnecte.id, ancien, motDePasse);
+      setMessage('Votre mot de passe est modifié.');
+      fermerPanneau();
     });
 
   const reinitialiser = (agent: Agent) =>
     agir(async () => {
-      const { mot_de_passe } = await api.reinitialiserMotDePasse(agent.id);
-      setMessage(`Mot de passe de ${agent.prenom} remis à « ${mot_de_passe} ».`);
-      setOuvert(null);
+      const { mot_de_passe } = await api.reinitialiserMotDePasse(agent.id, ancien);
+      setMessage(
+        `Mot de passe de ${agent.prenom} remis à « ${mot_de_passe} ». À changer à la prochaine connexion.`,
+      );
+      fermerPanneau();
     });
 
   const basculerActif = (agent: Agent) =>
@@ -113,12 +121,17 @@ export function GestionAgents({ agentConnecte }: Props) {
                 type="button"
                 className="bouton bouton--discret"
                 onClick={() => {
-                  setOuvert(ouvert === agent.id ? null : agent.id);
-                  setMotDePasse('');
+                  if (ouvert === agent.id) {
+                    fermerPanneau();
+                  } else {
+                    setOuvert(agent.id);
+                    setAncien('');
+                    setMotDePasse('');
+                  }
                   setMessage(null);
                 }}
               >
-                Mot de passe
+                {agent.id === agentConnecte.id ? 'Mon mot de passe' : 'Réinitialiser'}
               </button>
               {agent.id !== agentConnecte.id && (
                 <button
@@ -132,42 +145,73 @@ export function GestionAgents({ agentConnecte }: Props) {
               )}
             </div>
 
-            {ouvert === agent.id && (
-              <div className="agents__mdp">
-                <input
-                  className="champ"
-                  type="password"
-                  autoComplete="new-password"
-                  autoFocus
-                  placeholder="Nouveau mot de passe"
-                  value={motDePasse}
-                  onChange={(evenement) => setMotDePasse(evenement.target.value)}
-                  onKeyDown={(evenement) => {
-                    if (evenement.key === 'Enter' && motDePasse.length >= 3) {
-                      evenement.preventDefault();
-                      void enregistrerMotDePasse(agent);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="bouton bouton--principal"
-                  disabled={enCours || motDePasse.length < 3}
-                  onClick={() => enregistrerMotDePasse(agent)}
-                >
-                  Enregistrer
-                </button>
-                <button
-                  type="button"
-                  className="bouton"
-                  disabled={enCours}
-                  title={`Remettre le mot de passe à ${agent.prenom.toUpperCase()}`}
-                  onClick={() => reinitialiser(agent)}
-                >
-                  Réinitialiser
-                </button>
-              </div>
-            )}
+            {ouvert === agent.id &&
+              (agent.id === agentConnecte.id ? (
+                <div className="agents__mdp">
+                  <input
+                    className="champ"
+                    type="password"
+                    autoComplete="current-password"
+                    autoFocus
+                    placeholder="Mot de passe actuel"
+                    value={ancien}
+                    onChange={(evenement) => setAncien(evenement.target.value)}
+                  />
+                  <input
+                    className="champ"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Nouveau mot de passe"
+                    value={motDePasse}
+                    onChange={(evenement) => setMotDePasse(evenement.target.value)}
+                    onKeyDown={(evenement) => {
+                      if (evenement.key === 'Enter' && ancien && motDePasse.length >= 3) {
+                        evenement.preventDefault();
+                        void enregistrerMotDePasse();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="bouton bouton--principal"
+                    disabled={enCours || !ancien || motDePasse.length < 3}
+                    onClick={enregistrerMotDePasse}
+                  >
+                    Changer
+                  </button>
+                </div>
+              ) : (
+                <div className="agents__mdp">
+                  <p className="agents__explication">
+                    Le mot de passe de {agent.prenom} redeviendra{' '}
+                    <strong>{agent.prenom.toUpperCase()}</strong>, à changer ensuite
+                    depuis ce même écran. Confirmez avec <em>votre</em> mot de passe.
+                  </p>
+                  <input
+                    className="champ"
+                    type="password"
+                    autoComplete="current-password"
+                    autoFocus
+                    placeholder="Votre mot de passe"
+                    value={ancien}
+                    onChange={(evenement) => setAncien(evenement.target.value)}
+                    onKeyDown={(evenement) => {
+                      if (evenement.key === 'Enter' && ancien) {
+                        evenement.preventDefault();
+                        void reinitialiser(agent);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="bouton bouton--principal"
+                    disabled={enCours || !ancien}
+                    onClick={() => reinitialiser(agent)}
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
+              ))}
           </li>
         ))}
       </ul>
@@ -199,8 +243,10 @@ export function GestionAgents({ agentConnecte }: Props) {
 
       <p className="panneau__note panneau__note--gauche">
         Un nouvel agent reçoit son prénom en majuscules comme mot de passe, et ses
-        initiales sont déduites de son nom. Un agent désactivé ne peut plus se
-        connecter, mais son nom reste dans l'historique déjà écrit.
+        initiales sont déduites de son nom. On ne choisit jamais le mot de passe
+        d'un collègue : on le remet à son prénom, et la personne le change
+        ensuite. Un agent désactivé ne peut plus se connecter, mais son nom reste
+        dans l'historique déjà écrit.
       </p>
     </div>
   );

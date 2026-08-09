@@ -240,12 +240,13 @@ describe('API des agents', () => {
     );
   });
 
-  it('change un mot de passe, et l’ancien ne marche plus', async () => {
+  it('change son mot de passe quand on donne l’ancien', async () => {
     const client = creerClient();
     await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
     const bruno = listerAgents(db).find((a) => a.initiales === 'BR');
 
     const { statut } = await client('PUT', `/api/agents/${bruno.id}/mot-de-passe`, {
+      ancien_mot_de_passe: 'BRUNO',
       mot_de_passe: 'piscine2026',
     });
     assert.equal(statut, 204);
@@ -253,18 +254,99 @@ describe('API des agents', () => {
     assert.equal(authentifier(db, 'BR', 'BRUNO'), null);
   });
 
-  it('réinitialise un mot de passe au prénom en majuscules', async () => {
+  it('refuse le changement si l’ancien mot de passe est faux', async () => {
     const client = creerClient();
     await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
     const bruno = listerAgents(db).find((a) => a.initiales === 'BR');
 
-    await client('PUT', `/api/agents/${bruno.id}/mot-de-passe`, { mot_de_passe: 'autre' });
-    const { corps } = await client('PUT', `/api/agents/${bruno.id}/mot-de-passe`, {
-      reinitialiser: true,
+    const { statut, corps } = await client('PUT', `/api/agents/${bruno.id}/mot-de-passe`, {
+      ancien_mot_de_passe: 'PASBRUNO',
+      mot_de_passe: 'piscine2026',
+    });
+    assert.equal(statut, 400);
+    assert.match(corps.erreur, /Ancien mot de passe/);
+    // Rien n'a bougé.
+    assert.ok(authentifier(db, 'BR', 'BRUNO'));
+  });
+
+  it('refuse le changement sans ancien mot de passe du tout', async () => {
+    const client = creerClient();
+    await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const bruno = listerAgents(db).find((a) => a.initiales === 'BR');
+
+    const { statut } = await client('PUT', `/api/agents/${bruno.id}/mot-de-passe`, {
+      mot_de_passe: 'piscine2026',
+    });
+    assert.equal(statut, 400);
+    assert.ok(authentifier(db, 'BR', 'BRUNO'));
+  });
+
+  it('refuse un nouveau mot de passe identique à l’ancien', async () => {
+    const client = creerClient();
+    await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const bruno = listerAgents(db).find((a) => a.initiales === 'BR');
+
+    const { statut } = await client('PUT', `/api/agents/${bruno.id}/mot-de-passe`, {
+      ancien_mot_de_passe: 'BRUNO',
+      mot_de_passe: 'BRUNO',
+    });
+    assert.equal(statut, 400);
+  });
+
+  it('interdit de choisir le mot de passe d’un collègue', async () => {
+    const client = creerClient();
+    await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const marie = listerAgents(db).find((a) => a.initiales === 'ML');
+
+    const { statut, corps } = await client('PUT', `/api/agents/${marie.id}/mot-de-passe`, {
+      ancien_mot_de_passe: 'BRUNO',
+      mot_de_passe: 'je_connais_ce_mot',
+    });
+    assert.equal(statut, 400);
+    assert.match(corps.erreur, /collègue/);
+    // Marie garde le sien.
+    assert.ok(authentifier(db, 'ML', 'MARIE'));
+  });
+
+  it('réinitialise celui d’un collègue, en confirmant par le sien', async () => {
+    const client = creerClient();
+    await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const marie = listerAgents(db).find((a) => a.initiales === 'ML');
+
+    // Marie s'est choisi un mot de passe, puis l'a oublié.
+    const marieClient = creerClient();
+    await marieClient('POST', '/api/connexion', { initiales: 'ML', mot_de_passe: 'MARIE' });
+    await marieClient('PUT', `/api/agents/${marie.id}/mot-de-passe`, {
+      ancien_mot_de_passe: 'MARIE',
+      mot_de_passe: 'oublie2026',
     });
 
-    assert.equal(corps.mot_de_passe, 'BRUNO');
-    assert.ok(authentifier(db, 'BR', 'BRUNO'));
+    const { corps } = await client('PUT', `/api/agents/${marie.id}/mot-de-passe`, {
+      reinitialiser: true,
+      mon_mot_de_passe: 'BRUNO',
+    });
+    assert.equal(corps.mot_de_passe, 'MARIE');
+    assert.ok(authentifier(db, 'ML', 'MARIE'));
+  });
+
+  it('refuse la réinitialisation sans son propre mot de passe', async () => {
+    const client = creerClient();
+    await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const marie = listerAgents(db).find((a) => a.initiales === 'ML');
+
+    // Sans cette barrière, exiger l'ancien mot de passe ne servirait à rien :
+    // il suffirait de réinitialiser puis de se connecter à sa place.
+    const sansRien = await client('PUT', `/api/agents/${marie.id}/mot-de-passe`, {
+      reinitialiser: true,
+    });
+    const avecFaux = await client('PUT', `/api/agents/${marie.id}/mot-de-passe`, {
+      reinitialiser: true,
+      mon_mot_de_passe: 'PASBRUNO',
+    });
+
+    assert.equal(sansRien.statut, 400);
+    assert.equal(avecFaux.statut, 400);
+    assert.ok(authentifier(db, 'ML', 'MARIE'), 'Marie ne doit pas avoir bougé');
   });
 
   it('refuse un mot de passe trop court', async () => {
@@ -272,6 +354,7 @@ describe('API des agents', () => {
     await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
     const bruno = listerAgents(db).find((a) => a.initiales === 'BR');
     const { statut } = await client('PUT', `/api/agents/${bruno.id}/mot-de-passe`, {
+      ancien_mot_de_passe: 'BRUNO',
       mot_de_passe: 'ab',
     });
     assert.equal(statut, 400);
