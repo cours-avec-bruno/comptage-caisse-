@@ -6,6 +6,7 @@ import {
   type Agent,
   type EtatCoffre,
   type Journal,
+  type MouvementCoffre,
   type Parametres,
 } from './api';
 import { EcranConnexion } from './ecrans/EcranConnexion';
@@ -28,6 +29,7 @@ export function App() {
   const [parametres, setParametres] = useState<Parametres | null>(null);
   const [coffre, setCoffre] = useState<EtatCoffre | null>(null);
   const [journal, setJournal] = useState<Journal | null>(null);
+  const [mouvements, setMouvements] = useState<MouvementCoffre[]>([]);
   // `undefined` = on ne sait pas encore ; `null` = personne n'est connecté.
   const [agent, setAgent] = useState<Agent | null | undefined>(undefined);
   const [origineParametres, setOrigineParametres] = useState<
@@ -37,14 +39,17 @@ export function App() {
 
   const charger = useCallback(async () => {
     try {
-      const [nouveauxParametres, nouveauCoffre, nouveauJournal] = await Promise.all([
-        api.parametres(),
-        api.coffre(),
-        api.journal(),
-      ]);
+      const [nouveauxParametres, nouveauCoffre, nouveauJournal, nouveauxMouvements] =
+        await Promise.all([
+          api.parametres(),
+          api.coffre(),
+          api.journal(),
+          api.mouvementsCoffre(),
+        ]);
       setParametres(nouveauxParametres);
       setCoffre(nouveauCoffre);
       setJournal(nouveauJournal);
+      setMouvements(nouveauxMouvements.mouvements);
       setErreur(null);
     } catch (probleme) {
       // Une session expirée en cours de service renvoie à la connexion
@@ -78,6 +83,7 @@ export function App() {
     setParametres(null);
     setCoffre(null);
     setJournal(null);
+    setMouvements([]);
   };
 
   if (agent === undefined) {
@@ -188,7 +194,9 @@ export function App() {
           />
         )}
 
-        {onglet === 'journal' && <EcranJournal journal={journal} />}
+        {onglet === 'journal' && (
+          <EcranJournal journal={journal} mouvements={mouvements} />
+        )}
       </main>
 
       {origineParametres && (

@@ -1,4 +1,4 @@
-import { COUPURES, VALEURS_COUPURES } from 'caisse-partage';
+import { COUPURES, VALEURS_COUPURES, formaterEuros } from 'caisse-partage';
 import type { LigneInventaire, LigneJournal } from '../api-types';
 
 /**
@@ -14,7 +14,7 @@ export interface Mouvement {
   id: number;
   date: string;
   agent: string;
-  type: 'versement' | 'sortie';
+  type: 'versement' | 'sortie' | 'change';
   motif: string;
   comptage_id: number | null;
   cree_le: string;
@@ -351,6 +351,123 @@ export class MagasinDemo {
       id,
       montant_centimes: totalCentimes(demande) + corps.cheques_centimes,
     };
+  }
+
+  /**
+   * Change : on remet des coupures au coffre et on en reprend d'autres pour
+   * le même montant. Le solde ne bouge pas, seule la composition change —
+   * d'où un seul mouvement, et non une sortie suivie d'un versement.
+   */
+  enregistrerChange(corps: {
+    date: string;
+    agent: string;
+    motif: string;
+    entrantes: Record<number, number>;
+    sortantes: Record<number, number>;
+  }): { id: number; montant_centimes: number } {
+    const somme = (cotes: Record<number, number>) =>
+      Object.entries(cotes).reduce(
+        (total, [coupure, quantite]) => total + Number(coupure) * Number(quantite),
+        0,
+      );
+
+    const donne = somme(corps.entrantes);
+    const repris = somme(corps.sortantes);
+
+    if (donne === 0 && repris === 0) {
+      throw new Error('Indiquez ce que vous donnez au coffre et ce que vous y reprenez.');
+    }
+
+    if (donne !== repris) {
+      const ecart = Math.abs(donne - repris);
+      throw new Error(
+        `Un change ne fait pas varier le solde du coffre. Vous donnez ${formaterEuros(donne)} et vous reprenez ${formaterEuros(repris)} : il reste ${formaterEuros(ecart)} ${
+          donne > repris ? 'à reprendre' : 'à donner'
+        }.`,
+      );
+    }
+
+    const net = new Map<number, number>();
+    for (const [coupure, quantite] of Object.entries(corps.entrantes)) {
+      net.set(Number(coupure), (net.get(Number(coupure)) ?? 0) + Number(quantite));
+    }
+    for (const [coupure, quantite] of Object.entries(corps.sortantes)) {
+      net.set(Number(coupure), (net.get(Number(coupure)) ?? 0) - Number(quantite));
+    }
+    for (const [coupure, quantite] of [...net]) {
+      if (quantite === 0) net.delete(coupure);
+    }
+
+    if (net.size === 0) {
+      throw new Error(
+        'Ce change ne changerait rien : vous donnez et vous reprenez exactement les mêmes coupures.',
+      );
+    }
+
+    const stock = new Map(
+      this.inventaire().map((l) => [l.coupure_centimes, l.quantite]),
+    );
+
+    const manquantes = [...net]
+      .filter(([coupure, quantite]) => quantite < 0 && -quantite > (stock.get(coupure) ?? 0))
+      .map(([coupure, quantite]) => ({
+        coupure_centimes: coupure,
+        demande: -quantite,
+        disponible: stock.get(coupure) ?? 0,
+      }))
+      .sort((a, b) => a.coupure_centimes - b.coupure_centimes);
+
+    if (manquantes.length > 0) {
+      const details = manquantes
+        .map(
+          (m) =>
+            `${libelleCoupure(m.coupure_centimes)} (demandé ${m.demande}, disponible ${m.disponible})`,
+        )
+        .join(', ');
+      const erreur = new Error(`Le coffre n’a pas la monnaie : ${details}.`);
+      (erreur as Error & { details?: unknown }).details = { coupures: manquantes };
+      throw erreur;
+    }
+
+    const id = this.prochainMouvement;
+    this.prochainMouvement += 1;
+
+    this.mouvements.push({
+      id,
+      date: corps.date,
+      agent: corps.agent,
+      type: 'change',
+      motif: corps.motif,
+      comptage_id: null,
+      cree_le: horodatage(),
+      detail: [...net]
+        .sort((a, b) => a[0] - b[0])
+        .map(([coupure_centimes, quantite]) => ({ coupure_centimes, quantite })),
+      cheques_nombre: 0,
+      cheques_centimes: 0,
+    });
+
+    return { id, montant_centimes: donne };
+  }
+
+  /** L'historique du coffre, du plus récent au plus ancien. */
+  historique() {
+    return [...this.mouvements]
+      .sort((a, b) => (a.date === b.date ? b.id - a.id : b.date.localeCompare(a.date)))
+      .map((mouvement) => {
+        const valeur = (signe: number) =>
+          mouvement.detail
+            .filter((l) => Math.sign(l.quantite) === signe)
+            .reduce((somme, l) => somme + l.coupure_centimes * l.quantite, 0);
+
+        return {
+          ...mouvement,
+          // Effet sur le solde : nul pour un change, c'est tout son intérêt.
+          montant_centimes: totalCentimes(mouvement.detail) + mouvement.cheques_centimes,
+          entrees_centimes: valeur(1) + Math.max(0, mouvement.cheques_centimes),
+          sorties_centimes: -valeur(-1) - Math.min(0, mouvement.cheques_centimes),
+        };
+      });
   }
 
   journal() {

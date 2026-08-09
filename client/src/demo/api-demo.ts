@@ -331,6 +331,23 @@ export const apiDemo: ClientApi = {
     }
   },
 
+  changeCoffre: (corps) => {
+    try {
+      const connecte = exigerSession();
+      const change = magasin.enregistrerChange({
+        ...corps,
+        agent: connecte.initiales,
+        motif: corps.motif.trim() || 'Monnaie',
+      });
+      return repondre({ change, coffre: etatCoffre() });
+    } catch (probleme) {
+      const erreur = probleme as Error & { details?: { coupures?: [] } };
+      return Promise.reject(new ErreurApi(erreur.message, erreur.details));
+    }
+  },
+
+  mouvementsCoffre: () => repondre({ mouvements: magasin.historique() }),
+
   sauvegardes: () =>
     repondre({
       dossier: 'sauvegardes/ (inactif en démonstration)',

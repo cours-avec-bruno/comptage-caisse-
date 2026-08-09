@@ -20,6 +20,8 @@ interface Props {
    * chose disparaît d'un côté, on s'attend à la voir revenir du même côté.
    */
   origine?: { x: number; y: number } | null;
+  /** Feuille élargie : pour un contenu qui se lit en deux colonnes. */
+  large?: boolean;
 }
 
 /** Au-delà de ce déplacement vers le bas, on considère l'intention de fermer. */
@@ -29,7 +31,15 @@ const VITESSE_FERMETURE = 500;
 /** Hystérésis : en deçà, c'est un clic, pas un glissement. */
 const SEUIL_GESTE = 10;
 
-export function Modale({ titre, sousTitre, onFermer, children, pied, origine }: Props) {
+export function Modale({
+  titre,
+  sousTitre,
+  onFermer,
+  children,
+  pied,
+  origine,
+  large = false,
+}: Props) {
   const feuille = useRef<HTMLDivElement>(null);
   /* Le voile a son propre calque : porté par le conteneur, son opacité
      s'appliquerait aussi à la feuille, qui se délaverait avec lui. */
@@ -241,7 +251,7 @@ export function Modale({ titre, sousTitre, onFermer, children, pied, origine }: 
       />
 
       <div
-        className="feuille"
+        className={`feuille${large ? ' feuille--large' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={titre}

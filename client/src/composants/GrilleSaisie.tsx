@@ -14,6 +14,12 @@ interface Props {
   refSuivante?: React.RefObject<HTMLInputElement>;
   compact?: boolean;
   autoFocus?: boolean;
+  /** Distingue les identifiants quand deux grilles cohabitent (le change). */
+  prefixeId?: string;
+  /** Remplace le libellé « au coffre » quand la grille sert à autre chose. */
+  libelleStock?: string;
+  /** Colonnes resserrées : deux grilles doivent tenir côte à côte. */
+  serree?: boolean;
 }
 
 export const quantitesVides = (): Quantites => ({});
@@ -51,6 +57,9 @@ export function GrilleSaisie({
   refSuivante,
   compact = false,
   autoFocus = false,
+  prefixeId = 'qte',
+  libelleStock = 'au coffre',
+  serree = false,
 }: Props) {
   const champs = useRef<(HTMLInputElement | null)[]>([]);
   const [ligneActive, setLigneActive] = useState<number | null>(null);
@@ -91,7 +100,7 @@ export function GrilleSaisie({
   let index = -1;
 
   return (
-    <div className="carte grille">
+    <div className={`carte grille${serree ? ' grille--serree' : ''}`}>
       {(['billet', 'piece'] as const).map((type) => (
         <div key={type}>
           <div className="grille__section">{type === 'billet' ? 'Billets' : 'Pièces'}</div>
@@ -115,21 +124,24 @@ export function GrilleSaisie({
                     <Jeton valeur={coupure.valeur} compact={compact} />
                   </span>
 
-                  <label className="grille__nom" htmlFor={`qte-${coupure.valeur}`}>
+                  <label
+                    className="grille__nom"
+                    htmlFor={`${prefixeId}-${coupure.valeur}`}
+                  >
                     {coupure.libelle}
                     {disponible !== undefined && (
                       <span
                         className={`grille__stock${depasse ? ' grille__stock--depasse' : ''}`}
                       >
                         {depasse
-                          ? `au coffre : ${disponible} seulement`
-                          : `au coffre : ${disponible}`}
+                          ? `${libelleStock} : ${disponible} seulement`
+                          : `${libelleStock} : ${disponible}`}
                       </span>
                     )}
                   </label>
 
                   <input
-                    id={`qte-${coupure.valeur}`}
+                    id={`${prefixeId}-${coupure.valeur}`}
                     ref={(element) => {
                       champs.current[position] = element;
                     }}

@@ -3,7 +3,7 @@
  * reconstruit à chaque appel depuis `mouvement_detail`.
  */
 
-import { repartirCoffre } from 'caisse-partage';
+import { formaterEuros, repartirCoffre } from 'caisse-partage';
 
 import {
   construireInventaire,
@@ -95,7 +95,7 @@ export function etatCoffre(db, contenantId = CONTENANT_PAR_DEFAUT) {
  * @param {object} mouvement
  * @param {string} mouvement.date
  * @param {string} mouvement.agent
- * @param {'versement'|'sortie'} mouvement.type
+ * @param {'versement'|'sortie'|'change'} mouvement.type
  * @param {string} mouvement.motif
  * @param {Map<number, number>} mouvement.quantites signées
  * @param {{nombre: number, centimes: number}} [mouvement.cheques] signés
@@ -213,6 +213,118 @@ export function enregistrerSortie(db, params) {
       montant_centimes: totalCentimes(quantites) + cheques.centimes,
       especes_centimes: totalCentimes(quantites),
       cheques_centimes: cheques.centimes,
+    };
+  });
+
+  return transaction();
+}
+
+/**
+ * Change : on remet des coupures au coffre et on en reprend d'autres pour le
+ * même montant. Faire la monnaie sur un billet de 50 ne fait ni entrer ni
+ * sortir d'argent — le solde ne bouge pas, seule la composition change.
+ *
+ * D'où un seul mouvement, et pas une sortie suivie d'un versement : deux
+ * lignes auraient gonflé les totaux du jour et laissé croire à un
+ * mouvement de fonds qui n'a pas eu lieu.
+ *
+ * Les deux côtés sont compensés avant écriture : donner un billet de 20 et en
+ * reprendre un s'annule, et `mouvement_detail` n'a qu'une ligne par coupure.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {object} params
+ * @param {string} params.date
+ * @param {string} params.agent
+ * @param {string} params.motif
+ * @param {Map<number, number>} params.entrantes coupures remises au coffre
+ * @param {Map<number, number>} params.sortantes coupures reprises au coffre
+ * @param {number} [params.contenantId]
+ * @returns {{id: number, montant_centimes: number, detail: {coupure_centimes: number, quantite: number}[]}}
+ */
+export function enregistrerChange(db, params) {
+  const {
+    date,
+    agent,
+    motif,
+    entrantes,
+    sortantes,
+    contenantId = CONTENANT_PAR_DEFAUT,
+  } = params;
+
+  const donne = totalCentimes(entrantes);
+  const repris = totalCentimes(sortantes);
+
+  if (donne === 0 && repris === 0) {
+    throw new ErreurValidation(
+      'Indiquez ce que vous donnez au coffre et ce que vous y reprenez.',
+    );
+  }
+
+  if (donne !== repris) {
+    const ecart = Math.abs(donne - repris);
+    throw new ErreurValidation(
+      `Un change ne fait pas varier le solde du coffre. Vous donnez ${formaterEuros(donne)} et vous reprenez ${formaterEuros(repris)} : il reste ${formaterEuros(ecart)} ${
+        donne > repris ? 'à reprendre' : 'à donner'
+      }.`,
+      { donne_centimes: donne, repris_centimes: repris, ecart_centimes: ecart },
+    );
+  }
+
+  /** Le solde par coupure : positif si le coffre en gagne, négatif s'il en perd. */
+  const net = new Map();
+  for (const [coupure, quantite] of entrantes) {
+    net.set(coupure, (net.get(coupure) ?? 0) + quantite);
+  }
+  for (const [coupure, quantite] of sortantes) {
+    net.set(coupure, (net.get(coupure) ?? 0) - quantite);
+  }
+  for (const [coupure, quantite] of [...net]) {
+    if (quantite === 0) net.delete(coupure);
+  }
+
+  if (net.size === 0) {
+    throw new ErreurValidation(
+      'Ce change ne changerait rien : vous donnez et vous reprenez exactement les mêmes coupures.',
+    );
+  }
+
+  const transaction = db.transaction(() => {
+    const aRetirer = new Map(
+      [...net].filter(([, quantite]) => quantite < 0).map(([coupure, quantite]) => [
+        coupure,
+        -quantite,
+      ]),
+    );
+
+    const manquantes = coupuresInsuffisantes(inventaire(db, contenantId), aRetirer);
+    if (manquantes.length > 0) {
+      const details = manquantes
+        .map(
+          (m) =>
+            `${libelleCoupure(m.coupure_centimes)} (demandé ${m.demande}, disponible ${m.disponible})`,
+        )
+        .join(', ');
+      throw new ErreurValidation(
+        `Le coffre n'a pas la monnaie : ${details}.`,
+        { coupures: manquantes },
+      );
+    }
+
+    const id = insererMouvement(db, {
+      date,
+      agent,
+      type: 'change',
+      motif,
+      quantites: net,
+      contenantId,
+    });
+
+    return {
+      id,
+      montant_centimes: donne,
+      detail: [...net]
+        .sort((a, b) => a[0] - b[0])
+        .map(([coupure_centimes, quantite]) => ({ coupure_centimes, quantite })),
     };
   });
 

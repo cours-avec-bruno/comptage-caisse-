@@ -96,8 +96,16 @@ montant** ; sinon l'inventaire devient faux dès la première remise en banque.
 Les chèques sortent avec, et un bouton *Tout sortir* les prend d'un coup. La
 feuille se ferme à `Échap`, au bouton *Annuler*, ou en la tirant vers le bas.
 
+*Faire la monnaie* sert à l'autre besoin : échanger des coupures sans toucher au
+solde. Deux colonnes — ce qu'on donne au coffre, ce qu'on y reprend — et le pied
+de la feuille affiche en permanence ce qu'il reste à équilibrer. Tant que les
+deux côtés ne tombent pas sur le même montant, le bouton reste inerte.
+
 **Journal** — une ligne par journée validée, de la plus récente à la plus
-ancienne, avec le cumul en bas et les boutons d'export.
+ancienne, avec le cumul en bas et les boutons d'export. Dessous, **l'historique
+du coffre** : tout ce qui y est entré, sorti ou a été échangé, coupure par
+coupure. Un change y figure avec un effet sur le solde de `0,00 €` — c'est
+exactement ce qu'il fait.
 
 **Paramètres** — les agents, les sauvegardes et les exports. Rien à y valider :
 chaque action y prend effet immédiatement.
@@ -114,6 +122,10 @@ chaque action y prend effet immédiatement.
 - **Le fond de caisse reste dans le tiroir.** Valider une journée verse au
   coffre le comptage **moins la composition du fond**, coupure par coupure — de
   quoi rendre la monnaie le lendemain sans rouvrir le coffre.
+- **Faire la monnaie n'est ni une sortie ni un versement.** C'est un mouvement
+  d'un troisième type, qui ne déplace aucune somme : deux lignes — une sortie
+  puis un versement — auraient gonflé les totaux du jour et laissé croire à un
+  mouvement de fonds qui n'a pas eu lieu.
 - Chaque opération est enregistrée avec les initiales de l'agent **connecté**,
   et non avec celles choisies dans un menu : le poste ne peut pas signer au nom
   d'un collègue.
@@ -242,8 +254,9 @@ principes d'Apple (*Designing Fluid Interfaces*), traduits pour le web :
 se modifient et aucun trigger ne les protège.
 
 `comptages` (une ligne par journée validée) et `comptage_detail` (le détail par
-coupure) ; `mouvements_coffre` (`versement` ou `sortie`) et `mouvement_detail`
-(quantité positive pour un versement, négative pour une sortie).
+coupure) ; `mouvements_coffre` (`versement`, `sortie` ou `change`) et
+`mouvement_detail` (quantité positive pour un versement, négative pour une
+sortie ; un change porte les deux signes et sa somme vaut zéro).
 
 Les chèques ne sont pas des coupures : `comptages` et `mouvements_coffre` portent
 un `cheques_centimes`, signé comme les quantités. Le stock de chèques au coffre est

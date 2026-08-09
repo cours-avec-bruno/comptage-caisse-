@@ -60,6 +60,25 @@ export interface EtatCoffre {
   repartition: RepartitionCoffre;
 }
 
+/** Une ligne de l'historique du coffre : versement, sortie ou change. */
+export interface MouvementCoffre {
+  id: number;
+  date: string;
+  agent: string;
+  type: 'versement' | 'sortie' | 'change';
+  motif: string;
+  comptage_id: number | null;
+  cree_le: string;
+  cheques_nombre: number;
+  cheques_centimes: number;
+  detail: { coupure_centimes: number; quantite: number }[];
+  /** Effet sur le solde du coffre. Nul pour un change : c'est tout l'intérêt. */
+  montant_centimes: number;
+  /** Ce qui a bougé malgré tout : un change de 50 € déplace 50 €. */
+  entrees_centimes: number;
+  sorties_centimes: number;
+}
+
 export interface LigneJournal {
   id: number;
   date: string;
@@ -172,6 +191,15 @@ export interface ClientApi {
     detail: Record<number, number>;
     cheques_centimes: number;
   }): Promise<{ sortie: { id: number; montant_centimes: number }; coffre: EtatCoffre }>;
+  /** Faire la monnaie : on donne des coupures, on en reprend pour autant. */
+  changeCoffre(corps: {
+    date: string;
+    agent: string;
+    motif: string;
+    entrantes: Record<number, number>;
+    sortantes: Record<number, number>;
+  }): Promise<{ change: { id: number; montant_centimes: number }; coffre: EtatCoffre }>;
+  mouvementsCoffre(): Promise<{ mouvements: MouvementCoffre[] }>;
   sauvegardes(): Promise<{
     dossier: string;
     fichiers: { fichier: string; taille_octets: number; modifie_le: string }[];
