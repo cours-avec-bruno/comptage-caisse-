@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, ErreurApi, MODE_DEMO, type Agent } from '../api';
+import { api, ErreurApi, type Agent } from '../api';
 
 interface Props {
   onConnecte: (agent: Agent) => void;
@@ -110,10 +110,6 @@ export function EcranConnexion({ onConnecte }: Props) {
             value={motDePasse}
             onChange={(evenement) => setMotDePasse(evenement.target.value)}
           />
-          <p className="connexion__aide">
-            Par défaut, c'est votre prénom en majuscules. Il se change dans les
-            paramètres, une fois connecté.
-          </p>
         </div>
 
         <button
@@ -123,13 +119,6 @@ export function EcranConnexion({ onConnecte }: Props) {
         >
           {enCours ? 'Connexion…' : 'Entrer'}
         </button>
-
-        {MODE_DEMO && (
-          <p className="connexion__demo">
-            Démonstration : choisissez un agent, le mot de passe est son prénom en
-            majuscules — <strong>BRUNO</strong> ou <strong>MARIE</strong>.
-          </p>
-        )}
       </form>
     </div>
   );

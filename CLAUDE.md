@@ -11,8 +11,6 @@ réponse.
 - Commits atomiques, messages en français.
 - **Avant de pousser, `npm test` et `npm run build` doivent passer.** C'est la
   seule barrière avant `main` : si elle saute, on ne fusionne pas, on répare.
-- Après fusion, vérifier que GitHub Pages a bien republié — la démo sert
-  `main/docs`.
 - Autorisation debout pour fusionner dans la branche par défaut. Elle ne couvre
   pas les actions destructrices : réécriture d'historique, `push --force`,
   suppression de branche ou de dépôt restent à demander.

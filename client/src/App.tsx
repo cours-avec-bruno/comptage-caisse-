@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   api,
   ErreurApi,
-  MODE_DEMO,
   type Agent,
   type EtatCoffre,
   type Journal,
@@ -110,16 +109,6 @@ export function App() {
 
   return (
     <div className="app">
-      {MODE_DEMO && (
-        <div className="bandeau-demo">
-          <strong>Démonstration</strong>
-          <span>
-            Chiffres inventés, rien n'est enregistré : tout repart à zéro au
-            rechargement de la page. Ce n'est pas la caisse de la piscine.
-          </span>
-        </div>
-      )}
-
       <header className="barre">
         <div className="barre__marque">
           Caisse <span>accueil piscine</span>

@@ -25,30 +25,6 @@ body.feuille-ouverte .app {
   }
 }
 
-/* Bandeau de la version publiée en démonstration : voyant et non masquable,
-   personne ne doit croire compter une vraie caisse. */
-.bandeau-demo {
-  position: relative;
-  z-index: 30;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  gap: var(--espace-1) var(--espace-3);
-  padding: 0.625rem var(--espace-5);
-  background: var(--attention-clair);
-  color: var(--attention);
-  font-size: var(--taille-appoint);
-  letter-spacing: var(--tracking-appoint);
-  text-align: center;
-}
-
-.bandeau-demo strong {
-  font-size: var(--taille-etiquette);
-  letter-spacing: var(--tracking-etiquette);
-  text-transform: uppercase;
-}
-
 /* --- Chrome translucide --------------------------------------------------
    La barre est une couche flottante : le contenu passe dessous. */
 .barre {
@@ -896,6 +872,10 @@ body.feuille-ouverte .app {
   color: var(--encre-douce);
 }
 
+.chemin-dossier {
+  margin: var(--espace-2) 0 var(--espace-3);
+}
+
 .liste-fichiers {
   margin: 0;
   padding: 0;
@@ -1032,23 +1012,6 @@ body.feuille-ouverte .app {
   color: var(--encre-effacee);
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.connexion__aide {
-  margin-top: var(--espace-2);
-  font-size: var(--taille-appoint);
-  line-height: var(--leading-appoint);
-  color: var(--encre-effacee);
-}
-
-.connexion__demo {
-  padding: var(--espace-3) var(--espace-4);
-  border-radius: var(--rayon-m);
-  background: var(--attention-clair);
-  color: var(--attention);
-  font-size: var(--taille-appoint);
-  line-height: var(--leading-appoint);
-  text-align: center;
 }
 
 /* --- Agent connecté dans la barre ---------------------------------------- */

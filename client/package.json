@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "build:demo": "vite build --mode demo --base /comptage-caisse-/ --outDir ../docs"
+    "preview": "vite preview"
   },
   "dependencies": {
     "caisse-partage": "*",
