@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:demo": "vite build --mode demo --base /comptage-caisse-/ --outDir ../docs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
