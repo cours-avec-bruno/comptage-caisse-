@@ -93,6 +93,11 @@
   --rayon-xl: 2rem;
   --rayon-pilule: 999px;
 
+  /* Hauteur d'un cran de tambour. En pixels, et pas en rem : le composant
+     `Tambour` tient la même valeur en dur pour en déduire le rayon du
+     cylindre, et les deux doivent rester d'accord au pixel près. */
+  --tambour-cran: 36px;
+
   /* --- Typographie ----------------------------------------------------
      La police système embarque déjà l'optical sizing et les tables de
      crénage : on ne la remplace pas sans raison. */

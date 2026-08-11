@@ -132,21 +132,34 @@ function seauDe(date, granularite) {
  *          recette_especes_centimes: number, recette_centimes: number}[]} lignes
  *   toutes les journées validées, ordre indifférent
  * @param {string} aujourdHui « AAAA-MM-JJ »
- * @param {number|null} jours taille de la fenêtre, `null` pour tout l'historique
+ * @param {number|null|{debut: string, fin: string}} fenetre nombre de jours
+ *   comptés jusqu'à aujourd'hui, `null` pour tout l'historique, ou deux dates
+ *   choisies à la main — la seule forme dont la fin peut être passée
  */
-export function statistiques(lignes, aujourdHui, jours) {
+export function statistiques(lignes, aujourdHui, fenetre) {
   const dates = lignes.map((ligne) => ligne.date).sort();
   const premiere = dates[0] ?? aujourdHui;
 
-  const fin = aujourdHui;
-  const debut =
-    jours === null
-      ? // « Tout » part de la première journée validée, jamais d'une date
-        // arbitraire : la période affichée doit correspondre aux données.
-        premiere < aujourdHui
-        ? premiere
-        : aujourdHui
-      : decalerJours(aujourdHui, -(jours - 1));
+  let debut;
+  let fin;
+
+  if (fenetre !== null && typeof fenetre === 'object') {
+    // Plage choisie à la main. On remet les bornes dans l'ordre plutôt que de
+    // rendre une fenêtre vide : deux dates inversées veulent dire la même
+    // période, et refuser de compter n'apprendrait rien à personne.
+    debut = fenetre.debut <= fenetre.fin ? fenetre.debut : fenetre.fin;
+    fin = fenetre.debut <= fenetre.fin ? fenetre.fin : fenetre.debut;
+  } else {
+    fin = aujourdHui;
+    debut =
+      fenetre === null
+        ? // « Tout » part de la première journée validée, jamais d'une date
+          // arbitraire : la période affichée doit correspondre aux données.
+          premiere < aujourdHui
+          ? premiere
+          : aujourdHui
+        : decalerJours(aujourdHui, -(fenetre - 1));
+  }
 
   const dansLaFenetre = lignes.filter(
     (ligne) => ligne.date >= debut && ligne.date <= fin,

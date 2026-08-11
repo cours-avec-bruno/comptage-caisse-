@@ -103,8 +103,14 @@ export interface Statistiques {
   evolution_pourcent: number | null;
 }
 
+/**
+ * Ce qu'on demande aux statistiques : un nombre de jours comptés jusqu'à
+ * aujourd'hui, `null` pour tout l'historique, ou deux dates choisies à la main.
+ */
+export type Fenetre = number | null | { debut: string; fin: string };
+
 export declare function statistiques(
   lignes: JourneeRecette[],
   aujourdHui: string,
-  jours: number | null,
+  fenetre: Fenetre,
 ): Statistiques;

@@ -40,7 +40,7 @@ export function quantiteDepuisSaisie(saisie: string): number {
 }
 
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-const MOIS = [
+export const MOIS = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
   'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
 ];
@@ -58,4 +58,11 @@ export function dateCourte(iso: string): string {
   const [annee, mois, jour] = iso.split('-');
   if (!annee || !mois || !jour) return iso;
   return `${jour}/${mois}/${annee}`;
+}
+
+/** « 2026-08-07 » -> « 07/08 ». Pour les places étroites, l'année allant de soi. */
+export function dateBreve(iso: string): string {
+  const [annee, mois, jour] = iso.split('-');
+  if (!annee || !mois || !jour) return iso;
+  return `${jour}/${mois}`;
 }

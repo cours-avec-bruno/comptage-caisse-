@@ -1469,133 +1469,130 @@ body.feuille-ouverte .app {
   }
 }
 
-/* --- Règle de plage (Statistiques) ----------------------------------------
-   Une frise qu'on fait glisser à la main plutôt qu'un nombre à choisir dans
-   une liste. Le repère central se pose sur le premier jour compté, la zone
-   teintée court jusqu'à aujourd'hui. */
+/* --- Tambours de dates (Statistiques) -------------------------------------
+   Le sélecteur de période : deux dates, six colonnes qui tournent. Les crans
+   ne défilent pas dans un plan, ils sont posés sur un cylindre — chacun est
+   tourné autour de l'axe horizontal puis poussé vers l'avant du rayon. C'est
+   ce volume qui fait que les crans se resserrent d'eux-mêmes en haut et en
+   bas, sans qu'on ait à le dessiner. */
 
-.roulette-carte {
-  padding: 0;
-  margin-bottom: var(--gouttiere);
+.plage {
+  display: grid;
+  gap: var(--espace-5);
 }
 
-.roulette {
-  padding: var(--espace-5) var(--espace-6) var(--espace-4);
+@media (min-width: 40rem) {
+  .plage {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
-.roulette__lecture {
+.plage__date {
   display: flex;
-  align-items: baseline;
-  gap: var(--espace-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--espace-4);
+  flex-direction: column;
+  gap: var(--espace-2);
+  align-items: center;
 }
 
-.roulette__jours {
-  font-size: var(--taille-titre);
-  letter-spacing: var(--tracking-titre);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.roulette__plage {
-  font-size: var(--taille-appoint);
-  letter-spacing: var(--tracking-appoint);
-  color: var(--encre-douce);
-  font-variant-numeric: tabular-nums;
-}
-
-.roulette__piste {
+/* Le groupe porte la lucarne : sur iOS la bande claire court sous les trois
+   colonnes d'un coup, c'est elle qui les rassemble en une seule date. */
+.plage__tambours {
   position: relative;
-  height: 4.25rem;
+  display: flex;
+  justify-content: center;
+  gap: var(--espace-1);
+  padding: 0 var(--espace-2);
   border-radius: var(--rayon-m);
   background: var(--surface-douce);
-  overflow: hidden;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
-.roulette__piste:active {
-  cursor: grabbing;
-}
-
-.roulette__piste:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* La période retenue, du repère à aujourd'hui. */
-.roulette__zone {
+.plage__tambours::before {
+  content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 50%;
+  left: var(--espace-2);
+  right: var(--espace-2);
+  height: var(--tambour-cran);
+  margin-top: calc(var(--tambour-cran) / -2);
+  border-radius: var(--rayon-s);
   background: var(--accent-clair);
   pointer-events: none;
 }
 
-.roulette__trait {
+.plage__resume {
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.tambour {
+  position: relative;
+  width: 3.5rem;
+  /* Sept crans de haut : assez pour voir où l'on va, assez peu pour que les
+     extrêmes soient franchement inclinés. */
+  height: calc(7 * var(--tambour-cran));
+  perspective: 900px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  /* Les crans s'effacent vers les bords au lieu d'être coupés net : un
+     cylindre n'a pas d'arête. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 26%,
+    #000 74%,
+    transparent
+  );
+  mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 74%, transparent);
+}
+
+.tambour--large {
+  width: 6.5rem;
+}
+
+.tambour:active {
+  cursor: grabbing;
+}
+
+.tambour:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--rayon-s);
+}
+
+.tambour__cran {
   position: absolute;
-  top: 0.75rem;
-  width: 1px;
-  height: 0.75rem;
-  background: var(--trait-fort);
-  pointer-events: none;
-}
-
-/* Les lundis portent la date : la semaine est le repère naturel d'un service. */
-.roulette__trait--semaine {
-  top: 0.5rem;
-  height: 1.25rem;
-  background: var(--encre-effacee);
-}
-
-.roulette__trait--aujourdhui {
-  top: 0.5rem;
-  height: 1.25rem;
-  width: 2px;
-  background: var(--accent-fort);
-}
-
-.roulette__date {
-  position: absolute;
-  top: 1.5rem;
+  top: 50%;
   left: 0;
-  transform: translateX(-50%);
-  font-style: normal;
-  font-size: var(--taille-etiquette);
-  letter-spacing: var(--tracking-appoint);
-  color: var(--encre-effacee);
+  right: 0;
+  height: var(--tambour-cran);
+  margin-top: calc(var(--tambour-cran) / -2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--encre);
+  font: inherit;
+  font-size: var(--taille-corps);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  cursor: pointer;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
-/* Le repère ne bouge jamais : c'est la frise qui défile dessous. */
-.roulette__repere {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 2px;
-  transform: translateX(-1px);
-  background: var(--accent);
-  pointer-events: none;
-}
-
-.roulette__repere::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: var(--rayon-pilule);
-  transform: translate(-50%, -50%);
-  background: var(--accent);
-}
-
+/* Un dégradé de masque est une transparence : sans lui, la lucarne a besoin
+   d'un filet pour rester lisible. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .roulette__trait {
-    background: var(--encre-effacee);
+  .tambour {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .plage__tambours::before {
+    box-shadow: inset 0 0 0 1px var(--accent-trait);
   }
 }
