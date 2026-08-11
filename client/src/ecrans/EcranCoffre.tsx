@@ -107,7 +107,6 @@ export function EcranCoffre({ coffre, date, agent, onChangement }: Props) {
       <div className="entete-ecran">
         <div>
           <h1>Coffre</h1>
-          <p>Ce chiffre doit correspondre à ce qu'on trouve en ouvrant la porte.</p>
         </div>
       </div>
 

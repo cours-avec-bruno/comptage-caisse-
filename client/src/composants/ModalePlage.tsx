@@ -127,7 +127,6 @@ export function ModalePlage({ debut, fin, min, max, origine, onFermer, onValider
   return (
     <Modale
       titre="Choisir la période"
-      sousTitre="Les statistiques se recalculent sur ces deux dates."
       origine={origine}
       onFermer={onFermer}
       pied={

@@ -108,7 +108,6 @@ export function EcranStatistiques({ journal, date }: Props) {
       <div className="entete-ecran">
         <div>
           <h1>Statistiques</h1>
-          <p>Ce que la caisse a encaissé, et par quel moyen.</p>
         </div>
 
         <div className="entete-ecran__actions" role="group" aria-label="Période">
@@ -256,9 +255,6 @@ export function EcranStatistiques({ journal, date }: Props) {
               <div className="stats__chiffre">
                 <span className="etiquette">Moyenne par journée</span>
                 <strong>{formaterEuros(stat.moyenne_par_journee)}</strong>
-                <span className="stats__appoint">
-                  sur les journées travaillées, pas sur les jours du calendrier
-                </span>
               </div>
 
               {stat.meilleure && (
@@ -280,13 +276,7 @@ export function EcranStatistiques({ journal, date }: Props) {
 
           <section className="carte stats__histogramme">
             <header className="stats__entete">
-              <div>
-                <h2>{titreEvolution}</h2>
-                <p>
-                  Chaque barre est une recette, découpée par moyen de paiement.
-                  Passez dessus pour le détail.
-                </p>
-              </div>
+              <h2>{titreEvolution}</h2>
 
               {/* Sans repère, une barre ne dit que « plus » ou « moins ».
                   Celui-ci suffit : la plus haute vaut ce montant. */}
