@@ -164,6 +164,45 @@ describe('statistiques d’une période', () => {
     assert.equal(stat.totaux.recette_centimes, 140_000);
   });
 
+  it('accepte deux dates choisies à la main, fin passée comprise', () => {
+    const stat = statistiques(lignes, '2026-08-09', {
+      debut: '2026-07-30',
+      fin: '2026-08-03',
+    });
+
+    assert.equal(stat.debut, '2026-07-30');
+    assert.equal(stat.fin, '2026-08-03');
+    assert.equal(stat.etendue_jours, 5);
+    // 30/07 (300 €), 01/08 (400 €), 03/08 (100 €). Les 08 et 09 sont dehors.
+    assert.equal(stat.totaux.recette_centimes, 80_000);
+    assert.equal(stat.journees, 3);
+  });
+
+  it('remet dans l’ordre deux dates données à l’envers', () => {
+    const endroit = statistiques(lignes, '2026-08-09', {
+      debut: '2026-07-30',
+      fin: '2026-08-03',
+    });
+    const envers = statistiques(lignes, '2026-08-09', {
+      debut: '2026-08-03',
+      fin: '2026-07-30',
+    });
+
+    assert.deepEqual(envers.totaux, endroit.totaux);
+    assert.equal(envers.debut, '2026-07-30');
+    assert.equal(envers.fin, '2026-08-03');
+  });
+
+  it('compare une plage manuelle à celle qui la précède, pas à aujourd’hui', () => {
+    const stat = statistiques(lignes, '2026-08-09', {
+      debut: '2026-08-03',
+      fin: '2026-08-09',
+    });
+    // Même fenêtre que « 7 jours » : la comparaison doit tomber pareil.
+    assert.equal(stat.precedent.recette_centimes, 70_000);
+    assert.equal(stat.evolution_pourcent, 0);
+  });
+
   it('tient debout sans aucune journée', () => {
     const stat = statistiques([], '2026-08-09', 30);
     assert.equal(stat.journees, 0);
