@@ -1,9 +1,11 @@
-﻿' Pose l'icône « Caisse piscine » sur le Bureau et dans le menu Démarrer.
+' Pose l'icone "Caisse piscine" sur le Bureau et dans le menu Demarrer.
 '
-' Le raccourci vise `wscript.exe` plutôt que le .vbs directement : sur un poste
-' où l'extension .vbs n'est pas associée, Windows demanderait « avec quel
-' programme ouvrir ce fichier ? » — la dernière question à poser à quelqu'un
-' qui vient de double-cliquer sur une icône.
+' Le raccourci vise wscript.exe plutot que le .vbs directement : sur un poste
+' ou l'extension .vbs n'est pas associee, Windows demanderait "avec quel
+' programme ouvrir ce fichier ?" -- la derniere question a poser a quelqu'un
+' qui vient de double-cliquer sur une icone.
+'
+' ASCII pur, sans BOM : voir l'entete de demarrer-caisse.vbs.
 
 Option Explicit
 

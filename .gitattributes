@@ -1,5 +1,8 @@
 # Les scripts Windows gardent leurs fins de ligne CRLF : un .bat en LF
-# saute ses etiquettes, et l'icone est un binaire.
+# saute ses etiquettes. Ils sont aussi en ASCII pur, sans marque d'ordre
+# des octets — l'hote de script de Windows ne reconnait que le BOM UTF-16,
+# et refuse de compiler un fichier qui commence par un BOM UTF-8.
+# `server/test/lanceurs.test.js` le verifie.
 *.bat text eol=crlf
 *.vbs text eol=crlf
 *.ico binary
