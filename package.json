@@ -10,6 +10,7 @@
     "client"
   ],
   "scripts": {
+    "build:demo": "npm run build:demo --workspace client && node scripts/finaliser-docs.mjs",
     "build": "npm run build --workspace client",
     "start": "node server/src/index.js",
     "demarrer": "npm run build && npm run start",
