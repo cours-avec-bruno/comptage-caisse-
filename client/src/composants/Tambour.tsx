@@ -86,13 +86,27 @@ export function Tambour({ crans, valeur, onChange, etiquette, large = false }: P
     enVol.current = null;
   }, []);
 
-  /* La valeur peut changer de l'extérieur — un mois qui rétrécit la liste des
-     jours, par exemple. Le tambour y va en tournant plutôt qu'en sautant. */
+  /* La valeur du tour précédent. Elle départage les deux raisons qu'a un
+     tambour de ne plus être au bon cran. */
+  const valeurPosee = useRef(valeur);
+
   useEffect(() => {
     if (geste.current) return;
+    const memeValeur = valeurPosee.current === valeur;
+    valeurPosee.current = valeur;
+
     if (Math.round(positionVive.current) === cible) return;
 
-    if (mouvementReduit()) {
+    /* La liste s'est allongée ou raccourcie sous le tambour sans que sa
+       valeur bouge : la date voisine a resserré ses bornes. Le cran affiché
+       reste le bon, seul son rang a changé — on se recale sans tourner. Une
+       rotation ici mentirait, personne n'a rien choisi dans cette colonne.
+
+       En plein vol, en revanche, le tambour finit son mouvement : la valeur
+       ramenée à sa place par les bornes est le résultat du geste en cours,
+       et l'arrêter net se lirait comme un gel. */
+    if ((memeValeur && !enVol.current) || mouvementReduit()) {
+      arreter();
       positionVive.current = cible;
       setPosition(cible);
       ressort.current.poser(cible);
@@ -101,7 +115,7 @@ export function Tambour({ crans, valeur, onChange, etiquette, large = false }: P
 
     ressort.current.viser(cible);
     voler();
-  }, [cible, voler]);
+  }, [valeur, cible, arreter, voler]);
 
   useEffect(() => () => arreter(), [arreter]);
 
@@ -176,8 +190,15 @@ export function Tambour({ crans, valeur, onChange, etiquette, large = false }: P
   };
 
   /* La molette a besoin d'un écouteur non passif pour ne pas emporter la
-     feuille avec elle. React pose les siens en passif : on descend au DOM. */
+     feuille avec elle. React pose les siens en passif : on descend au DOM.
+
+     L'abonnement vaut pour toute la vie du tambour, et lit le reste par
+     référence : le refaire à chaque rendu du parent effacerait, avec son
+     nettoyage, le calage encore en attente à la fin du geste. */
   const colonne = useRef<HTMLDivElement>(null);
+  const vif = useRef({ poser, dernier });
+  vif.current = { poser, dernier };
+
   useEffect(() => {
     const element = colonne.current;
     if (!element) return;
@@ -190,13 +211,13 @@ export function Tambour({ crans, valeur, onChange, etiquette, large = false }: P
       positionVive.current = borner(
         positionVive.current + evenement.deltaY / HAUTEUR,
         0,
-        dernier,
+        vif.current.dernier,
       );
       setPosition(positionVive.current);
 
       molette.current = setTimeout(() => {
         molette.current = null;
-        poser(0);
+        vif.current.poser(0);
       }, REPOS_MOLETTE);
     };
 
@@ -205,7 +226,7 @@ export function Tambour({ crans, valeur, onChange, etiquette, large = false }: P
       element.removeEventListener('wheel', surMolette);
       if (molette.current) clearTimeout(molette.current);
     };
-  }, [arreter, dernier, poser]);
+  }, [arreter]);
 
   const surTouche = (evenement: React.KeyboardEvent) => {
     const pas =
