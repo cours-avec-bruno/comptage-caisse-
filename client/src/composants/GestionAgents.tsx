@@ -7,11 +7,12 @@ interface Props {
 }
 
 /**
- * Ajout d'agents, changement de mot de passe, désactivation.
+ * Ajout d'agents, désactivation, et changement de son propre mot de passe.
  *
- * Tout agent connecté peut gérer les autres : l'équipe fait trois personnes
- * autour du même comptoir, et une hiérarchie de rôles coûterait plus qu'elle
- * ne protégerait.
+ * Personne ne peut toucher au mot de passe d'un autre — pas même le remettre
+ * au prénom : un mot de passe qu'un collègue peut remettre à une valeur qu'il
+ * connaît n'est plus un mot de passe. Chacun change le sien depuis sa propre
+ * session, en donnant l'ancien et en tapant le nouveau deux fois.
  */
 export function GestionAgents({ agentConnecte }: Props) {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -20,6 +21,7 @@ export function GestionAgents({ agentConnecte }: Props) {
   const [ouvert, setOuvert] = useState<number | null>(null);
   const [ancien, setAncien] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -64,21 +66,19 @@ export function GestionAgents({ agentConnecte }: Props) {
     setOuvert(null);
     setAncien('');
     setMotDePasse('');
+    setConfirmation('');
   };
+
+  // La double saisie se vérifie ici aussi, pour le dire avant l'envoi plutôt
+  // qu'après un aller-retour.
+  const discordance = confirmation.length > 0 && confirmation !== motDePasse;
+  const complet =
+    ancien.length > 0 && motDePasse.length >= 3 && confirmation === motDePasse;
 
   const enregistrerMotDePasse = () =>
     agir(async () => {
-      await api.changerMotDePasse(agentConnecte.id, ancien, motDePasse);
+      await api.changerMotDePasse(agentConnecte.id, ancien, motDePasse, confirmation);
       setMessage('Votre mot de passe est modifié.');
-      fermerPanneau();
-    });
-
-  const reinitialiser = (agent: Agent) =>
-    agir(async () => {
-      const { mot_de_passe } = await api.reinitialiserMotDePasse(agent.id, ancien);
-      setMessage(
-        `Mot de passe de ${agent.prenom} remis à « ${mot_de_passe} ». À changer à la prochaine connexion.`,
-      );
       fermerPanneau();
     });
 
@@ -117,22 +117,25 @@ export function GestionAgents({ agentConnecte }: Props) {
             </div>
 
             <div className="agents__actions">
-              <button
-                type="button"
-                className="bouton bouton--discret"
-                onClick={() => {
-                  if (ouvert === agent.id) {
-                    fermerPanneau();
-                  } else {
-                    setOuvert(agent.id);
-                    setAncien('');
-                    setMotDePasse('');
-                  }
-                  setMessage(null);
-                }}
-              >
-                {agent.id === agentConnecte.id ? 'Mon mot de passe' : 'Réinitialiser'}
-              </button>
+              {agent.id === agentConnecte.id && (
+                <button
+                  type="button"
+                  className="bouton bouton--discret"
+                  onClick={() => {
+                    if (ouvert === agent.id) {
+                      fermerPanneau();
+                    } else {
+                      setOuvert(agent.id);
+                      setAncien('');
+                      setMotDePasse('');
+                      setConfirmation('');
+                    }
+                    setMessage(null);
+                  }}
+                >
+                  Mon mot de passe
+                </button>
+              )}
               {agent.id !== agentConnecte.id && (
                 <button
                   type="button"
@@ -145,73 +148,56 @@ export function GestionAgents({ agentConnecte }: Props) {
               )}
             </div>
 
-            {ouvert === agent.id &&
-              (agent.id === agentConnecte.id ? (
-                <div className="agents__mdp">
-                  <input
-                    className="champ"
-                    type="password"
-                    autoComplete="current-password"
-                    autoFocus
-                    placeholder="Mot de passe actuel"
-                    value={ancien}
-                    onChange={(evenement) => setAncien(evenement.target.value)}
-                  />
-                  <input
-                    className="champ"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="Nouveau mot de passe"
-                    value={motDePasse}
-                    onChange={(evenement) => setMotDePasse(evenement.target.value)}
-                    onKeyDown={(evenement) => {
-                      if (evenement.key === 'Enter' && ancien && motDePasse.length >= 3) {
-                        evenement.preventDefault();
-                        void enregistrerMotDePasse();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="bouton bouton--principal"
-                    disabled={enCours || !ancien || motDePasse.length < 3}
-                    onClick={enregistrerMotDePasse}
-                  >
-                    Changer
-                  </button>
-                </div>
-              ) : (
-                <div className="agents__mdp">
-                  <p className="agents__explication">
-                    Le mot de passe de {agent.prenom} redeviendra{' '}
-                    <strong>{agent.prenom.toUpperCase()}</strong>, à changer ensuite
-                    depuis ce même écran. Confirmez avec <em>votre</em> mot de passe.
+            {ouvert === agent.id && (
+              <div className="agents__mdp">
+                <input
+                  className="champ"
+                  type="password"
+                  autoComplete="current-password"
+                  autoFocus
+                  placeholder="Mot de passe actuel"
+                  value={ancien}
+                  onChange={(evenement) => setAncien(evenement.target.value)}
+                />
+                <input
+                  className="champ"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Nouveau mot de passe"
+                  value={motDePasse}
+                  onChange={(evenement) => setMotDePasse(evenement.target.value)}
+                />
+                <input
+                  className={`champ${discordance ? ' champ--erreur' : ''}`}
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Le nouveau, encore"
+                  aria-invalid={discordance || undefined}
+                  value={confirmation}
+                  onChange={(evenement) => setConfirmation(evenement.target.value)}
+                  onKeyDown={(evenement) => {
+                    if (evenement.key === 'Enter' && complet) {
+                      evenement.preventDefault();
+                      void enregistrerMotDePasse();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="bouton bouton--principal"
+                  disabled={enCours || !complet}
+                  onClick={enregistrerMotDePasse}
+                >
+                  Changer
+                </button>
+
+                {discordance && (
+                  <p className="agents__discordance">
+                    Les deux nouveaux mots de passe ne sont pas identiques.
                   </p>
-                  <input
-                    className="champ"
-                    type="password"
-                    autoComplete="current-password"
-                    autoFocus
-                    placeholder="Votre mot de passe"
-                    value={ancien}
-                    onChange={(evenement) => setAncien(evenement.target.value)}
-                    onKeyDown={(evenement) => {
-                      if (evenement.key === 'Enter' && ancien) {
-                        evenement.preventDefault();
-                        void reinitialiser(agent);
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="bouton bouton--principal"
-                    disabled={enCours || !ancien}
-                    onClick={() => reinitialiser(agent)}
-                  >
-                    Réinitialiser
-                  </button>
-                </div>
-              ))}
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>

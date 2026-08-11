@@ -21,10 +21,8 @@ import {
   authentifier,
   changerSonMotDePasse,
   creerAgent,
-  motDePasseCorrect,
   listerAgents,
   modifierAgent,
-  reinitialiserMotDePasse,
 } from './domaine/agents.js';
 import {
   agentDeSession,
@@ -157,38 +155,30 @@ export function creerApp(options) {
   });
 
   /**
-   * Deux chemins, et deux seulement :
+   * Un seul chemin : chacun change le sien, depuis sa propre session, en
+   * donnant l'ancien et en tapant le nouveau deux fois.
    *
-   *  - son propre mot de passe se change en donnant l'ancien ;
-   *  - celui d'un collègue ne se choisit pas, il se *réinitialise* au prénom
-   *    en majuscules — et il faut donner son propre mot de passe pour le
-   *    faire, sinon la première règle ne vaudrait rien : il suffirait de
-   *    réinitialiser puis de se connecter à la place de l'intéressé.
-   *
-   * Conséquence voulue : personne ne peut fixer en douce le mot de passe d'un
-   * collègue à une valeur qu'il connaît. Une réinitialisation se voit, puisque
-   * l'intéressé ne peut plus entrer avec le sien.
+   * Il n'existe aucun moyen d'agir sur le mot de passe d'un collègue — pas
+   * même de le remettre au prénom. Un mot de passe qu'un autre poste peut
+   * remettre à une valeur connue n'est plus un mot de passe.
    */
   api.put('/agents/:id/mot-de-passe', (req, res) => {
     const corps = req.body ?? {};
     const id = Number(req.params.id);
-    const soiMeme = id === req.agent.id;
 
-    if (corps.reinitialiser) {
-      if (!motDePasseCorrect(db, req.agent.id, corps.mon_mot_de_passe)) {
-        throw new ErreurValidation('Votre mot de passe est incorrect.');
-      }
-      res.json({ mot_de_passe: reinitialiserMotDePasse(db, id) });
-      return;
-    }
-
-    if (!soiMeme) {
+    if (id !== req.agent.id) {
       throw new ErreurValidation(
-        'On ne choisit pas le mot de passe d’un collègue. Réinitialisez-le : il redevient le prénom en majuscules, à charge pour la personne de le changer.',
+        'On ne touche pas au mot de passe d’un collègue. Chacun change le sien depuis sa propre session.',
       );
     }
 
-    changerSonMotDePasse(db, id, corps.ancien_mot_de_passe, corps.mot_de_passe);
+    changerSonMotDePasse(
+      db,
+      id,
+      corps.ancien_mot_de_passe,
+      corps.mot_de_passe,
+      corps.confirmation,
+    );
     // Changer son propre mot de passe ne doit pas déconnecter le poste.
     res.status(204).end();
   });

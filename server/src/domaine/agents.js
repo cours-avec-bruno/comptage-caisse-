@@ -222,10 +222,8 @@ export function changerMotDePasse(db, id, motDePasse) {
 }
 
 /**
- * Vérifie le mot de passe d'un agent donné.
- *
- * Sert à deux endroits : confirmer l'ancien avant d'en changer, et confirmer
- * le sien avant de réinitialiser celui d'un collègue.
+ * Vérifie le mot de passe d'un agent donné, pour confirmer l'ancien avant
+ * d'en changer.
  *
  * @param {import('better-sqlite3').Database} db
  * @param {number} id
@@ -239,35 +237,38 @@ export function motDePasseCorrect(db, id, motDePasse) {
 }
 
 /**
- * Change son propre mot de passe. L'ancien est exigé : sans lui, un poste
- * laissé ouvert une minute suffirait à verrouiller quelqu'un hors de son
- * compte, ou à s'y installer.
+ * Change son propre mot de passe, et uniquement le sien.
+ *
+ * Trois conditions, chacune pour une raison distincte :
+ *
+ *  - l'ancien est exigé, sinon un poste laissé ouvert une minute suffirait à
+ *    verrouiller quelqu'un hors de son compte ou à s'y installer ;
+ *  - le nouveau ne peut pas être l'ancien, sinon le geste ne change rien ;
+ *  - le nouveau est saisi deux fois, parce qu'on ne relit pas un mot de passe
+ *    masqué et qu'une faute de frappe enfermerait dehors.
+ *
+ * La double saisie est vérifiée ici, et pas seulement à l'écran : c'est la
+ * règle, pas une commodité d'interface.
  *
  * @param {import('better-sqlite3').Database} db
  * @param {number} id
  * @param {string} ancien
  * @param {string} nouveau
+ * @param {string} confirmation
  */
-export function changerSonMotDePasse(db, id, ancien, nouveau) {
+export function changerSonMotDePasse(db, id, ancien, nouveau, confirmation) {
   if (!motDePasseCorrect(db, id, ancien)) {
     throw new ErreurValidation('Ancien mot de passe incorrect.');
+  }
+  if (String(nouveau ?? '').trim() !== String(confirmation ?? '').trim()) {
+    throw new ErreurValidation(
+      'Les deux nouveaux mots de passe ne sont pas identiques. Retapez-les.',
+    );
   }
   if (String(nouveau ?? '').trim() === String(ancien ?? '').trim()) {
     throw new ErreurValidation('Le nouveau mot de passe est identique à l’ancien.');
   }
   return changerMotDePasse(db, id, nouveau);
-}
-
-/**
- * Remet le mot de passe au prénom en majuscules.
- * @param {import('better-sqlite3').Database} db
- * @param {number} id
- */
-export function reinitialiserMotDePasse(db, id) {
-  const agent = db.prepare('SELECT prenom FROM agents WHERE id = ?').get(id);
-  if (!agent) throw new ErreurValidation('Agent introuvable.');
-  changerMotDePasse(db, id, motDePasseParDefaut(agent.prenom));
-  return motDePasseParDefaut(agent.prenom);
 }
 
 /**
