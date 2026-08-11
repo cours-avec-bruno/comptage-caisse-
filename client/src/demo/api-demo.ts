@@ -181,15 +181,24 @@ export const apiDemo: ClientApi = {
     return repondre({ agent: publier(agent) });
   },
 
-  changerMotDePasse: (id, ancien, nouveau) => {
+  changerMotDePasse: (id, ancien, nouveau, confirmation) => {
     const connecte = exigerSession();
     if (id !== connecte.id) {
       return Promise.reject(
-        new ErreurApi('On ne choisit pas le mot de passe d’un collègue.'),
+        new ErreurApi(
+          'On ne touche pas au mot de passe d’un collègue. Chacun change le sien depuis sa propre session.',
+        ),
       );
     }
     if (connecte.motDePasse !== ancien.trim()) {
       return Promise.reject(new ErreurApi('Ancien mot de passe incorrect.'));
+    }
+    if (nouveau.trim() !== confirmation.trim()) {
+      return Promise.reject(
+        new ErreurApi(
+          'Les deux nouveaux mots de passe ne sont pas identiques. Retapez-les.',
+        ),
+      );
     }
     if (nouveau.trim() === ancien.trim()) {
       return Promise.reject(
@@ -201,17 +210,6 @@ export const apiDemo: ClientApi = {
     }
     connecte.motDePasse = nouveau.trim();
     return repondre(undefined as void);
-  },
-
-  reinitialiserMotDePasse: (id, monMotDePasse) => {
-    const connecte = exigerSession();
-    if (connecte.motDePasse !== monMotDePasse.trim()) {
-      return Promise.reject(new ErreurApi('Votre mot de passe est incorrect.'));
-    }
-    const agent = magasin.agents.find((a) => a.id === id);
-    if (!agent) return Promise.reject(new ErreurApi('Agent introuvable.'));
-    agent.motDePasse = MagasinDemo.motDePasseParDefaut(agent.prenom);
-    return repondre({ mot_de_passe: agent.motDePasse });
   },
 
   parametres: () =>

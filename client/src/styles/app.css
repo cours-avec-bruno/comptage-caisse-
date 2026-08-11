@@ -1091,6 +1091,13 @@ body.feuille-ouverte .app {
   min-width: 9rem;
 }
 
+.agents__discordance {
+  width: 100%;
+  font-size: var(--taille-appoint);
+  line-height: var(--leading-appoint);
+  color: var(--manque);
+}
+
 .agents__ajout {
   display: flex;
   flex-wrap: wrap;
@@ -1106,12 +1113,6 @@ body.feuille-ouverte .app {
   text-align: left;
 }
 
-.agents__explication {
-  width: 100%;
-  font-size: var(--taille-appoint);
-  line-height: var(--leading-appoint);
-  color: var(--encre-douce);
-}
 
 /* Sous-libellé d'une ligne de calcul : précise sans alourdir. */
 .ligne-calcul__appoint {
@@ -1465,5 +1466,136 @@ body.feuille-ouverte .app {
 @media (prefers-reduced-motion: reduce) {
   .histogramme__barre {
     transition: none;
+  }
+}
+
+/* --- Règle de plage (Statistiques) ----------------------------------------
+   Une frise qu'on fait glisser à la main plutôt qu'un nombre à choisir dans
+   une liste. Le repère central se pose sur le premier jour compté, la zone
+   teintée court jusqu'à aujourd'hui. */
+
+.roulette-carte {
+  padding: 0;
+  margin-bottom: var(--gouttiere);
+}
+
+.roulette {
+  padding: var(--espace-5) var(--espace-6) var(--espace-4);
+}
+
+.roulette__lecture {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espace-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--espace-4);
+}
+
+.roulette__jours {
+  font-size: var(--taille-titre);
+  letter-spacing: var(--tracking-titre);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.roulette__plage {
+  font-size: var(--taille-appoint);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.roulette__piste {
+  position: relative;
+  height: 4.25rem;
+  border-radius: var(--rayon-m);
+  background: var(--surface-douce);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.roulette__piste:active {
+  cursor: grabbing;
+}
+
+.roulette__piste:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* La période retenue, du repère à aujourd'hui. */
+.roulette__zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--accent-clair);
+  pointer-events: none;
+}
+
+.roulette__trait {
+  position: absolute;
+  top: 0.75rem;
+  width: 1px;
+  height: 0.75rem;
+  background: var(--trait-fort);
+  pointer-events: none;
+}
+
+/* Les lundis portent la date : la semaine est le repère naturel d'un service. */
+.roulette__trait--semaine {
+  top: 0.5rem;
+  height: 1.25rem;
+  background: var(--encre-effacee);
+}
+
+.roulette__trait--aujourdhui {
+  top: 0.5rem;
+  height: 1.25rem;
+  width: 2px;
+  background: var(--accent-fort);
+}
+
+.roulette__date {
+  position: absolute;
+  top: 1.5rem;
+  left: 0;
+  transform: translateX(-50%);
+  font-style: normal;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-appoint);
+  color: var(--encre-effacee);
+  white-space: nowrap;
+}
+
+/* Le repère ne bouge jamais : c'est la frise qui défile dessous. */
+.roulette__repere {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-1px);
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.roulette__repere::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--rayon-pilule);
+  transform: translate(-50%, -50%);
+  background: var(--accent);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .roulette__trait {
+    background: var(--encre-effacee);
   }
 }

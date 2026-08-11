@@ -31,8 +31,9 @@ tape son mot de passe, on entre. La session tient une journée de service large
 (14 h) et survit à un redémarrage de l'application — fermer la fenêtre noire ne
 déconnecte personne en plein comptage.
 
-**Le mot de passe d'un agent est son prénom en majuscules** (`BRUNO`, `MARIE`).
-Il se change dans les paramètres, une fois connecté.
+**Le mot de passe initial d'un agent est son prénom en majuscules** (`BRUNO`,
+`MARIE`). Il se change dans les paramètres, une fois connecté — et il n'y a que
+là qu'il se change.
 
 Deux agents existent au premier démarrage : **Bruno Ricci** (`BR`) et
 **Marie Lefevre** (`ML`).
@@ -43,14 +44,16 @@ Tout se passe dans **Paramètres → Agents d'accueil** :
 
 - **Ajouter** : prénom et nom suffisent. Les initiales se déduisent du nom, et
   le mot de passe initial est le prénom en majuscules.
-- **Mon mot de passe** : pour changer le sien, il faut donner l'ancien. Un
-  poste laissé ouvert une minute ne suffit donc pas à s'installer sur un
-  compte.
-- **Réinitialiser** celui d'un collègue : on ne le *choisit* jamais, on le remet
-  au prénom en majuscules, et la personne le change ensuite. Il faut confirmer
-  avec **son propre** mot de passe — sans quoi exiger l'ancien ne servirait à
-  rien : il suffirait de réinitialiser puis de se connecter à la place de
-  l'intéressé.
+- **Mon mot de passe** : chacun change le sien, depuis sa propre session. Il
+  faut donner l'ancien — un poste laissé ouvert une minute ne suffit donc pas à
+  s'installer sur un compte — et taper le nouveau **deux fois**, parce qu'on ne
+  relit pas un mot de passe masqué et qu'une faute de frappe enfermerait dehors.
+- **Le mot de passe d'un collègue est hors d'atteinte.** Il n'existe aucun moyen
+  de le choisir, ni même de le remettre au prénom : un mot de passe qu'un autre
+  poste peut ramener à une valeur connue n'est plus un mot de passe. La
+  contrepartie est réelle et il faut la connaître : **un mot de passe oublié est
+  perdu**. La seule sortie est de désactiver le compte et d'en créer un autre —
+  l'historique déjà écrit garde le nom de l'ancien.
 - **Désactiver** : l'agent ne peut plus se connecter, mais son nom reste dans
   l'historique déjà écrit. On ne peut pas se désactiver soi-même, ni désactiver
   le dernier agent actif — plus personne ne pourrait entrer.
@@ -64,8 +67,8 @@ protégerait.
 Elle empêche qu'un visiteur passant derrière le comptoir ouvre l'application, et
 elle garantit qu'une opération est signée par la personne réellement connectée —
 le poste ne peut plus signer au nom d'un collègue. Personne ne peut non plus
-fixer en douce le mot de passe d'un collègue à une valeur connue : une
-réinitialisation se voit, puisque l'intéressé ne peut plus entrer avec le sien.
+toucher au mot de passe d'un autre, à aucun titre : chacun ne peut agir que sur
+le sien, et seulement depuis sa propre session.
 
 Elle ne protège pas contre quelqu'un qui connaît l'équipe : **un prénom en
 majuscules se devine**. Si l'application doit un jour compter pour un contrôle,

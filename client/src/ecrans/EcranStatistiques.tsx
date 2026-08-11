@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { PERIODES, statistiques, type SeauRecette } from 'caisse-partage';
+import { nombreDeJours, statistiques, type SeauRecette } from 'caisse-partage';
 import type { Journal } from '../api';
+import { RoulettePlage } from '../composants/RoulettePlage';
 import { dateCourte, dateLongue, formaterEuros } from '../format';
 
 interface Props {
@@ -8,6 +9,17 @@ interface Props {
   /** La date du serveur, jamais celle du poste : elle fait foi partout ailleurs. */
   date: string;
 }
+
+/** Longueur minimale d'une plage : en deçà, la comparaison ne dit rien. */
+const MINIMUM_JOURS = 3;
+
+/** Raccourcis. La règle reste le moyen de réglage fin. */
+const RACCOURCIS = [
+  { cle: '7j', libelle: '7 jours', jours: 7 },
+  { cle: '30j', libelle: '30 jours', jours: 30 },
+  { cle: '90j', libelle: '3 mois', jours: 90 },
+  { cle: 'tout', libelle: 'Tout', jours: null },
+] as const;
 
 /** Les trois moyens de paiement, dans l'ordre où ils s'empilent. */
 const MOYENS = [
@@ -36,11 +48,22 @@ function periodeDuSeau(seau: SeauRecette, granularite: string): string {
 }
 
 export function EcranStatistiques({ journal, date }: Props) {
-  const [periode, setPeriode] = useState(PERIODES[1]);
+  // Le maximum, c'est tout l'historique : proposer de remonter avant la
+  // première journée validée n'aurait rien à montrer.
+  const maximumJours = useMemo(() => {
+    const premiere = journal.lignes.reduce(
+      (plusAncienne, ligne) => (ligne.date < plusAncienne ? ligne.date : plusAncienne),
+      date,
+    );
+    return Math.max(MINIMUM_JOURS, nombreDeJours(premiere, date));
+  }, [journal.lignes, date]);
+
+  const [jours, setJours] = useState(30);
+  const joursRetenus = Math.min(Math.max(MINIMUM_JOURS, jours), maximumJours);
 
   const stat = useMemo(
-    () => statistiques(journal.lignes, date, periode.jours),
-    [journal.lignes, date, periode],
+    () => statistiques(journal.lignes, date, joursRetenus),
+    [journal.lignes, date, joursRetenus],
   );
 
   const montants = {
@@ -70,18 +93,31 @@ export function EcranStatistiques({ journal, date }: Props) {
         </div>
 
         <div className="entete-ecran__actions" role="group" aria-label="Période">
-          {PERIODES.map((choix) => (
-            <button
-              key={choix.cle}
-              type="button"
-              className="bouton bouton--onglet"
-              aria-pressed={choix.cle === periode.cle}
-              onClick={() => setPeriode(choix)}
-            >
-              {choix.libelle}
-            </button>
-          ))}
+          {RACCOURCIS.map((choix) => {
+            const cible = Math.min(choix.jours ?? maximumJours, maximumJours);
+            return (
+              <button
+                key={choix.cle}
+                type="button"
+                className="bouton bouton--onglet"
+                aria-pressed={joursRetenus === cible}
+                onClick={() => setJours(cible)}
+              >
+                {choix.libelle}
+              </button>
+            );
+          })}
         </div>
+      </div>
+
+      <div className="carte roulette-carte">
+        <RoulettePlage
+          jours={joursRetenus}
+          min={MINIMUM_JOURS}
+          max={maximumJours}
+          fin={date}
+          onChange={setJours}
+        />
       </div>
 
       {stat.journees === 0 ? (
