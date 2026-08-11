@@ -15,8 +15,7 @@
     "demarrer": "npm run build && npm run start",
     "dev:api": "node --watch server/src/index.js",
     "dev:web": "npm run dev --workspace client",
-    "test": "node --test 'server/test/*.test.js'",
-    "build:demo": "npm run build:demo --workspace client && node scripts/finaliser-docs.mjs"
+    "test": "node --test 'server/test/*.test.js'"
   },
   "engines": {
     "node": ">=20"

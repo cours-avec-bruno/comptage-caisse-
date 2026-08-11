@@ -191,9 +191,6 @@ export function EcranStatistiques({ journal, date }: Props) {
               <div className="stats__chiffre">
                 <span className="etiquette">Part encaissée en espèces</span>
                 <strong>{stat.parts.especes} %</strong>
-                <span className="stats__appoint">
-                  le reste passe par la carte et les chèques
-                </span>
               </div>
             </section>
           </div>

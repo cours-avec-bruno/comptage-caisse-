@@ -1,7 +1,5 @@
 /**
- * Types et erreurs partagés par le client HTTP et l'implémentation de
- * démonstration. Fichier séparé pour que les deux puissent s'y référer sans
- * créer d'import circulaire.
+ * Types et erreurs de l'API, décrits une fois pour toutes les écrans.
  */
 
 export interface Parametres {
@@ -139,10 +137,7 @@ export class ErreurApi extends Error {
 
 export type NomExport = 'comptages' | 'mouvements' | 'inventaire';
 
-/**
- * Surface commune au client HTTP et à l'implémentation de démonstration.
- * Les écrans ne savent pas lequel des deux ils utilisent.
- */
+/** Surface de l'API, telle que les écrans la voient. */
 export interface ClientApi {
   /** Qui est connecté sur ce poste, ou `null`. */
   session(): Promise<{ agent: Agent | null }>;

@@ -240,14 +240,6 @@ export function GestionAgents({ agentConnecte }: Props) {
           Ajouter
         </button>
       </div>
-
-      <p className="panneau__note panneau__note--gauche">
-        Un nouvel agent reçoit son prénom en majuscules comme mot de passe, et ses
-        initiales sont déduites de son nom. On ne choisit jamais le mot de passe
-        d'un collègue : on le remet à son prénom, et la personne le change
-        ensuite. Un agent désactivé ne peut plus se connecter, mais son nom reste
-        dans l'historique déjà écrit.
-      </p>
     </div>
   );
 }

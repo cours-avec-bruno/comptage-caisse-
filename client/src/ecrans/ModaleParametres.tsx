@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, MODE_DEMO, type Agent } from '../api';
+import { api, type Agent } from '../api';
 import { GestionAgents } from '../composants/GestionAgents';
 import { Modale } from '../composants/Modale';
 
@@ -55,22 +55,12 @@ export function ModaleParametres({ agentConnecte, origine, onFermer }: Props) {
 
       <div>
         <span className="etiquette">Sauvegardes automatiques</span>
-        <p className="panneau__note" style={{ textAlign: 'left', margin: '0 0 8px' }}>
-          {MODE_DEMO ? (
-            <>
-              Inactives en démonstration : il n'y a pas de base de données à copier.
-              Dans l'application installée, une copie est écrite à chaque journée
-              validée et les 30 dernières sont conservées.
-            </>
-          ) : (
-            <>
-              Une copie de la base est écrite dans <code>{dossier || 'sauvegardes/'}</code>{' '}
-              à chaque journée validée. Les 30 dernières sont conservées.
-            </>
-          )}
+        {/* Le seul renseignement qui serve : où les trouver. */}
+        <p className="chemin-dossier">
+          <code>{dossier || 'sauvegardes/'}</code>
         </p>
-        {MODE_DEMO ? null : sauvegardes.length === 0 ? (
-          <p className="panneau__note" style={{ textAlign: 'left' }}>
+        {sauvegardes.length === 0 ? (
+          <p className="panneau__note panneau__note--gauche">
             Aucune copie pour le moment.
           </p>
         ) : (
