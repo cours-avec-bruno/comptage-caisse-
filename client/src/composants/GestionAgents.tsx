@@ -197,18 +197,11 @@ export function GestionAgents({ agentConnecte }: Props) {
             {aSupprimer?.id === agent.id && (
               <div className="agents__suppression">
                 <p className="agents__avertissement">
-                  <strong>
-                    Supprimer {agent.prenom} {agent.nom} ({agent.initiales}) ?
-                  </strong>{' '}
                   C'est définitif : le compte disparaît et ne se récupère pas.
                   Les comptages et les mouvements du coffre signés{' '}
-                  {agent.initiales} restent au journal, et ces initiales ne
-                  seront jamais redonnées à quelqu'un d'autre.
+                  {agent.initiales} restent au journal.
                 </p>
 
-                <label className="etiquette" htmlFor={`mdp-suppression-${agent.id}`}>
-                  Votre mot de passe, {agentConnecte.prenom}
-                </label>
                 <div className="agents__suppression-saisie">
                   <input
                     id={`mdp-suppression-${agent.id}`}
@@ -216,7 +209,8 @@ export function GestionAgents({ agentConnecte }: Props) {
                     type="password"
                     autoComplete="current-password"
                     autoFocus
-                    placeholder="Le vôtre, pas le sien"
+                    aria-label={`Votre mot de passe, pour confirmer la suppression de ${agent.prenom} ${agent.nom}`}
+                    placeholder="Votre mot de passe, pas le sien"
                     value={mdpSuppression}
                     onChange={(evenement) => setMdpSuppression(evenement.target.value)}
                     onKeyDown={(evenement) => {
