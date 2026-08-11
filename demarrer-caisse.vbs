@@ -1,19 +1,23 @@
-﻿' Lanceur « application de bureau » pour Windows.
+' Lanceur "application de bureau" pour Windows.
 '
 ' Il fait trois choses que le .bat ne peut pas faire :
-'   - démarrer le serveur SANS fenêtre noire ;
-'   - attendre qu'il réponde vraiment avant d'ouvrir quoi que ce soit ;
-'   - ouvrir une fenêtre de navigateur en mode application — sans barre
-'     d'adresse, sans onglets, avec sa propre icône dans la barre des tâches.
+'   - demarrer le serveur SANS fenetre noire ;
+'   - attendre qu'il reponde vraiment avant d'ouvrir quoi que ce soit ;
+'   - ouvrir une fenetre de navigateur en mode application, sans barre
+'     d'adresse ni onglets, avec sa propre icone dans la barre des taches.
 '
-' Relancé alors que la caisse tourne déjà, il n'en démarre pas une deuxième :
-' il rouvre simplement la fenêtre. Deux serveurs sur la même base seraient un
-' très mauvais moment à passer.
+' Relance alors que la caisse tourne deja, il n'en demarre pas une deuxieme :
+' il rouvre simplement la fenetre. Deux serveurs sur la meme base seraient un
+' tres mauvais moment a passer.
+'
+' Ce fichier est en ASCII pur, sans BOM, et doit le rester. L'hote de script
+' de Windows ne reconnait que le BOM UTF-16 : un BOM UTF-8 lui arrive comme
+' trois caracteres et il refuse de compiler des la premiere colonne.
 
 Option Explicit
 
 Const PORT = 4173
-Const ATTENTE_MAX = 60   ' demi-secondes : 30 s, large même sur un PC poussif
+Const ATTENTE_MAX = 60   ' demi-secondes : 30 s, large meme sur un PC poussif
 
 Dim shell, fso, racine, adresse
 Set shell = CreateObject("WScript.Shell")
@@ -23,11 +27,11 @@ racine = fso.GetParentFolderName(WScript.ScriptFullName)
 shell.CurrentDirectory = racine
 adresse = "http://localhost:" & PORT & "/"
 
-' --- Le serveur répond-il déjà ? -------------------------------------------
+' --- Le serveur repond-il deja ? -------------------------------------------
 If Not RepondDeja(adresse) Then
   If Not Preparer() Then WScript.Quit 1
 
-  ' Fenêtre cachée (0), et on ne l'attend pas (False) : elle vit sa vie.
+  ' Fenetre cachee (0), et on ne l'attend pas (False) : elle vit sa vie.
   shell.Run "cmd /c npm start", 0, False
 
   Dim essais
@@ -39,8 +43,8 @@ If Not RepondDeja(adresse) Then
   Loop
 
   If essais >= ATTENTE_MAX Then
-    MsgBox "La caisse n'a pas démarré." & vbCrLf & vbCrLf & _
-           "Double-cliquez sur « demarrer-caisse.bat » : il affiche le message" & vbCrLf & _
+    MsgBox "La caisse n'a pas demarre." & vbCrLf & vbCrLf & _
+           "Double-cliquez sur demarrer-caisse.bat : il affiche le message" & vbCrLf & _
            "d'erreur au lieu de le cacher.", vbCritical, "Caisse"
     WScript.Quit 1
   End If
@@ -50,15 +54,15 @@ Ouvrir adresse
 
 ' ---------------------------------------------------------------------------
 
-' Vrai si quelque chose répond à cette adresse. Sert aussi de détection de
-' double lancement : le port occupé, c'est la caisse déjà en route.
+' Vrai si quelque chose repond a cette adresse. Sert aussi de detection de
+' double lancement : le port occupe, c'est la caisse deja en route.
 Function RepondDeja(url)
   Dim requete
   RepondDeja = False
   On Error Resume Next
   Set requete = CreateObject("MSXML2.XMLHTTP")
-  ' Adresse unique à chaque essai : une réponse gardée en cache ferait croire
-  ' que le serveur répond alors qu'il n'est pas encore levé.
+  ' Adresse unique a chaque essai : une reponse gardee en cache ferait croire
+  ' que le serveur repond alors qu'il n'est pas encore leve.
   requete.Open "GET", url & "?_=" & Timer, False
   requete.setRequestHeader "Cache-Control", "no-cache"
   requete.Send
@@ -66,16 +70,16 @@ Function RepondDeja(url)
   On Error GoTo 0
 End Function
 
-' Première utilisation, ou après une mise à jour. Ces deux étapes-là prennent
-' du temps : la fenêtre reste visible pour qu'on voie qu'il se passe quelque
+' Premiere utilisation, ou apres une mise a jour. Ces deux etapes-la prennent
+' du temps : la fenetre reste visible pour qu'on voie qu'il se passe quelque
 ' chose, et pour lire l'erreur si Node.js manque.
 Function Preparer()
   Preparer = False
 
   If Not fso.FolderExists(fso.BuildPath(racine, "node_modules")) Then
     If shell.Run("cmd /c title Caisse - installation & npm install", 1, True) <> 0 Then
-      MsgBox "L'installation a échoué." & vbCrLf & vbCrLf & _
-             "Node.js est-il installé ? https://nodejs.org (version LTS)", _
+      MsgBox "L'installation a echoue." & vbCrLf & vbCrLf & _
+             "Node.js est-il installe ? https://nodejs.org (version LTS)", _
              vbCritical, "Caisse"
       Exit Function
     End If
@@ -83,7 +87,7 @@ Function Preparer()
 
   If Not fso.FileExists(fso.BuildPath(racine, "client\dist\index.html")) Then
     If shell.Run("cmd /c title Caisse - preparation & npm run build", 1, True) <> 0 Then
-      MsgBox "La préparation de l'affichage a échoué.", vbCritical, "Caisse"
+      MsgBox "La preparation de l'affichage a echoue.", vbCritical, "Caisse"
       Exit Function
     End If
   End If
@@ -91,10 +95,10 @@ Function Preparer()
   Preparer = True
 End Function
 
-' Une fenêtre d'application plutôt qu'un onglet : c'est tout ce qui sépare
-' « un site ouvert dans le navigateur » de « le logiciel de la caisse ».
+' Une fenetre d'application plutot qu'un onglet : c'est tout ce qui separe
+' "un site ouvert dans le navigateur" de "le logiciel de la caisse".
 Sub Ouvrir(url)
-  Dim candidats, chemin
+  Dim candidats, chemin, i
   candidats = Array( _
     "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe", _
     "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe", _
@@ -102,7 +106,6 @@ Sub Ouvrir(url)
     "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe", _
     "%LocalAppData%\Google\Chrome\Application\chrome.exe")
 
-  Dim i
   For i = 0 To UBound(candidats)
     chemin = shell.ExpandEnvironmentStrings(candidats(i))
     If fso.FileExists(chemin) Then
@@ -111,6 +114,6 @@ Sub Ouvrir(url)
     End If
   Next
 
-  ' Ni Edge ni Chrome : le navigateur par défaut, avec sa barre d'adresse.
+  ' Ni Edge ni Chrome : le navigateur par defaut, avec sa barre d'adresse.
   shell.Run url, 1, False
 End Sub
