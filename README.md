@@ -8,21 +8,48 @@ billet par billet.
 L'application est sa propre référence : il n'y a pas de logiciel de billetterie
 à côté, donc pas de total théorique auquel se comparer.
 
-## Installation, en trois lignes
+## Installation sur le PC de l'accueil
 
 1. Installer [Node.js](https://nodejs.org) version 20 ou plus récente (choisir
    la version « LTS », accepter toutes les options par défaut).
-2. Copier ce dossier sur le PC de l'accueil, par exemple dans `C:\caisse`.
-3. Double-cliquer sur **`demarrer-caisse.bat`**. La première fois, l'installation
-   prend une minute ; ensuite c'est immédiat.
+2. Copier ce dossier sur le PC, par exemple dans `C:\caisse`.
+3. Double-cliquer une fois sur **`installer-raccourci.bat`**. L'icône
+   **Caisse piscine** apparaît sur le Bureau et dans le menu Démarrer.
 
-Le navigateur s'ouvre tout seul sur <http://localhost:4173>. La fenêtre noire
-doit rester ouverte tant qu'on utilise l'application : la fermer arrête tout.
+C'est fini. Ensuite, on double-clique sur l'icône, et l'application s'ouvre
+dans sa propre fenêtre : pas de barre d'adresse, pas d'onglets, pas de fenêtre
+noire. La première ouverture prend une minute — installation et préparation de
+l'affichage —, les suivantes sont immédiates.
 
-> Pour que ce soit plus simple au quotidien : clic droit sur
-> `demarrer-caisse.bat` → *Envoyer vers* → *Bureau (créer un raccourci)*.
+**Tout reste sur ce PC.** Il n'y a pas de compte à créer, pas de serveur
+ailleurs, aucune connexion sortante. Les données vivent dans `donnees/caisse.db`
+et les copies dans `sauvegardes/`, dans ce même dossier. Le serveur n'écoute
+que la machine elle-même : un autre poste du réseau ne peut pas l'atteindre.
 
-Sous Linux ou macOS, `./demarrer-caisse.sh` fait la même chose.
+| Fichier | À quoi il sert |
+| ------- | -------------- |
+| `installer-raccourci.bat` | Une fois, à l'installation : pose l'icône sur le Bureau |
+| `demarrer-caisse.vbs` | Ce que lance l'icône. Se double-clique aussi directement |
+| `arreter-caisse.bat` | Arrête le serveur. Utile avant de copier ou de déplacer le dossier |
+| `demarrer-caisse.bat` | La même chose, mais avec la fenêtre noire visible : à utiliser quand ça ne démarre pas, pour lire l'erreur |
+
+### Ce qu'il faut savoir
+
+**Fermer la fenêtre n'arrête pas l'application.** Le serveur continue en
+arrière-plan, sans fenêtre, et la rouvrir est instantané — c'est ce qui la fait
+ressembler à un logiciel installé plutôt qu'à un site. Il s'arrête à l'extinction
+du PC, ou avec `arreter-caisse.bat`.
+
+**Relancer l'icône deux fois n'ouvre pas deux caisses.** Le lanceur vérifie
+d'abord si elle tourne déjà ; le cas échéant il se contente de rouvrir la
+fenêtre. Deux serveurs sur la même base seraient un très mauvais moment à passer.
+
+**Pour qu'elle soit prête dès l'allumage du poste** : copier le raccourci du
+Bureau, puis `Windows`+`R`, taper `shell:startup`, `Entrée`, et coller le
+raccourci dans le dossier qui s'ouvre.
+
+Sous Linux ou macOS, `./demarrer-caisse.sh` démarre le serveur dans le terminal
+et l'application s'ouvre à l'adresse <http://localhost:4173>.
 
 ## Se connecter
 
@@ -38,12 +65,14 @@ là qu'il se change.
 Deux agents existent au premier démarrage : **Bruno Ricci** (`BR`) et
 **Marie Lefevre** (`ML`).
 
-### Ajouter, modifier, désactiver un agent
+### Ajouter, modifier, désactiver, supprimer un agent
 
 Tout se passe dans **Paramètres → Agents d'accueil** :
 
 - **Ajouter** : prénom et nom suffisent. Les initiales se déduisent du nom, et
-  le mot de passe initial est le prénom en majuscules.
+  le mot de passe initial est le prénom en majuscules. Deux personnes aux mêmes
+  initiales sont numérotées entre parenthèses : `ML`, puis `ML(2)`, `ML(3)` —
+  et ces initiales-là se tapent telles quelles à la connexion.
 - **Mon mot de passe** : chacun change le sien, depuis sa propre session. Il
   faut donner l'ancien — un poste laissé ouvert une minute ne suffit donc pas à
   s'installer sur un compte — et taper le nouveau **deux fois**, parce qu'on ne
@@ -57,6 +86,18 @@ Tout se passe dans **Paramètres → Agents d'accueil** :
 - **Désactiver** : l'agent ne peut plus se connecter, mais son nom reste dans
   l'historique déjà écrit. On ne peut pas se désactiver soi-même, ni désactiver
   le dernier agent actif — plus personne ne pourrait entrer.
+- **Supprimer** : le compte disparaît pour de bon. Il faut taper **son propre
+  mot de passe**, celui de la session ouverte — pas celui de l'agent supprimé :
+  le poste reste ouvert entre deux passages, et ce mot de passe est la seule
+  chose qui distingue « c'est bien moi qui le décide » de « quelqu'un est passé
+  derrière le comptoir ». On ne peut pas se supprimer soi-même, ni supprimer le
+  dernier agent actif.
+
+  **L'historique ne bouge pas.** Les comptages et les mouvements du coffre ne
+  connaissent pas les agents par leur identifiant : ils portent leurs initiales,
+  écrites une fois pour toutes. Un agent disparaît de la liste, pas du journal —
+  et ses initiales ne sont jamais redonnées à quelqu'un d'autre, sans quoi un
+  versement de 2026 signé `ML` finirait par désigner deux personnes.
 
 Tout agent connecté peut gérer les autres : l'équipe fait trois personnes autour
 du même comptoir, et une hiérarchie de rôles coûterait plus qu'elle ne
@@ -111,7 +152,8 @@ coupure. Un change y figure avec un effet sur le solde de `0,00 €` — c'est
 exactement ce qu'il fait.
 
 **Statistiques** — ce que la caisse a encaissé, et par quel moyen. Une fenêtre
-au choix (7 jours, 30 jours, 3 mois, tout), la recette de la période en gros,
+au choix — 7 jours, 30 jours, tout, ou *Personnaliser* qui ouvre un calendrier
+où l'on prend le premier jour puis le dernier —, la recette de la période en gros,
 puis sa décomposition **espèces / carte / chèques** : une barre pour la
 proportion, et juste dessous les montants et les parts en toutes lettres — la
 couleur ne porte jamais l'information toute seule. Dessous, l'évolution, dont le
@@ -121,6 +163,11 @@ par mois au-delà.
 La moyenne est calculée **sur les journées travaillées**, pas sur les jours du
 calendrier : la piscine ferme, et diviser par des jours fermés dirait n'importe
 quoi. Rien n'est stocké — tout se recalcule depuis le journal.
+
+Prendre deux fois la même date affiche **cette journée-là** : le titre la nomme
+en toutes lettres, la comparaison se fait à la veille, et la moyenne comme
+l'histogramme s'effacent — sur un seul jour, ils répéteraient le chiffre déjà
+écrit en gros.
 
 **Paramètres** — les agents, les sauvegardes et les exports. Rien à y valider :
 chaque action y prend effet immédiatement.
@@ -299,6 +346,7 @@ modifier une entrée existante.
 | Variable                 | Défaut             | Rôle |
 | ------------------------ | ------------------ | ---- |
 | `PORT`                   | `4173`             | Port d'écoute |
+| `CAISSE_HOTE`            | `127.0.0.1`        | Interface d'écoute. `0.0.0.0` ouvrirait la caisse au réseau — à ne faire qu'en le décidant |
 | `CAISSE_DB`              | `donnees/caisse.db`| Emplacement de la base |
 | `CAISSE_SAUVEGARDES`     | `sauvegardes/`     | Dossier des copies |
 | `CAISSE_MAX_SAUVEGARDES` | `30`               | Nombre de copies conservées |
