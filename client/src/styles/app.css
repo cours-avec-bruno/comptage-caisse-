@@ -1469,54 +1469,200 @@ body.feuille-ouverte .app {
   }
 }
 
-/* --- Tambours de dates (Statistiques) -------------------------------------
-   Le sélecteur de période : deux dates, six colonnes qui tournent. Les crans
-   ne défilent pas dans un plan, ils sont posés sur un cylindre — chacun est
-   tourné autour de l'axe horizontal puis poussé vers l'avant du rayon. C'est
-   ce volume qui fait que les crans se resserrent d'eux-mêmes en haut et en
-   bas, sans qu'on ait à le dessiner. */
+/* --- Calendrier de période (Statistiques) ---------------------------------
+   Le mois en entier plutôt qu'une liste de nombres : on voit les week-ends,
+   les jours de fermeture et la place du jour choisi dans sa semaine. Le choix
+   se fait en deux temps, le début puis la fin, une question à la fois. */
 
-.plage {
+.etapes {
+  display: flex;
+  gap: var(--espace-2);
+}
+
+/* Le rang à gauche, le nom au-dessus de sa date : à deux jetons sur la
+   largeur de lecture, tout mettre sur une ligne les ferait déborder. */
+.etape {
+  flex: 1;
   display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'rang nom'
+    'rang date';
+  align-items: center;
+  column-gap: var(--espace-3);
+  padding: var(--espace-3) var(--espace-4);
+  border: 0;
+  border-radius: var(--rayon-m);
+  background: var(--surface-douce);
+  color: var(--encre-douce);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.etape:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* L'étape en cours porte la couleur : on sait à quelle question on répond. */
+.etape--active {
+  background: var(--accent-clair);
+  color: var(--encre);
+  box-shadow: inset 0 0 0 1px var(--accent-trait);
+}
+
+.etape__rang {
+  grid-area: rang;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--rayon-pilule);
+  background: var(--surface);
+  color: var(--encre-douce);
+  font-size: var(--taille-etiquette);
+  font-weight: 700;
+}
+
+.etape--active .etape__rang {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.etape__nom {
+  grid-area: nom;
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-etiquette);
+  text-transform: uppercase;
+}
+
+.etape__date {
+  grid-area: date;
+  font-size: var(--taille-corps);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Les trois blocs de la feuille partagent une largeur de lecture : une grille
+   de sept colonnes étalée sur toute la feuille donnerait des cases de la
+   taille d'un bouton, et le pied passerait sous l'écran. */
+.plage {
+  display: flex;
+  flex-direction: column;
   gap: var(--espace-5);
+  width: 100%;
+  max-width: 23rem;
+  margin-inline: auto;
 }
 
-@media (min-width: 40rem) {
-  .plage {
-    grid-template-columns: 1fr 1fr;
-  }
+.calendrier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espace-3);
 }
 
-.plage__date {
+.calendrier__barre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espace-2);
+}
+
+.calendrier__mois {
+  font-size: var(--taille-section);
+  letter-spacing: var(--tracking-section);
+}
+
+.calendrier__fleche {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: var(--rayon-pilule);
+  background: var(--surface-douce);
+  color: var(--encre);
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calendrier__fleche:hover:not(:disabled) {
+  background: var(--accent-clair);
+}
+
+.calendrier__fleche:disabled {
+  color: var(--encre-effacee);
+  cursor: default;
+}
+
+.calendrier__grille {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.calendrier__grille th {
+  padding-bottom: var(--espace-2);
+  font-size: var(--taille-etiquette);
+  letter-spacing: var(--tracking-etiquette);
+  text-transform: uppercase;
+  color: var(--encre-douce);
+  font-weight: 600;
+}
+
+.calendrier__grille abbr {
+  text-decoration: none;
+}
+
+.calendrier__jour {
+  width: 100%;
+  height: 2.5rem;
+  border: 0;
+  border-radius: var(--rayon-s);
+  background: none;
+  color: var(--encre);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+/* Les états portent leur propre variante survolée. Sans elle, le survol —
+   plus spécifique — reprendrait la main et le jour choisi redeviendrait gris
+   sous le curseur qui vient de le choisir. */
+.calendrier__jour:hover:not(:disabled) {
+  background: var(--surface-creuse);
+}
+
+/* Les jours des mois voisins et ceux hors bornes restent là, éteints : les
+   retirer poserait la question de savoir où ils sont passés. */
+.calendrier__jour--voisin {
+  color: var(--encre-effacee);
+}
+
+.calendrier__jour:disabled {
+  color: var(--encre-effacee);
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* La plage en train de se former, pendant le choix de la fin. */
+.calendrier__jour--dedans,
+.calendrier__jour--dedans:hover:not(:disabled) {
+  background: var(--accent-clair);
+}
+
+.calendrier__jour--choisi,
+.calendrier__jour--choisi:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+.plage__saisie {
   display: flex;
   flex-direction: column;
   gap: var(--espace-2);
-  align-items: center;
-}
-
-/* Le groupe porte la lucarne : sur iOS la bande claire court sous les trois
-   colonnes d'un coup, c'est elle qui les rassemble en une seule date. */
-.plage__tambours {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  gap: var(--espace-1);
-  padding: 0 var(--espace-2);
-  border-radius: var(--rayon-m);
-  background: var(--surface-douce);
-}
-
-.plage__tambours::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: var(--espace-2);
-  right: var(--espace-2);
-  height: var(--tambour-cran);
-  margin-top: calc(var(--tambour-cran) / -2);
-  border-radius: var(--rayon-s);
-  background: var(--accent-clair);
-  pointer-events: none;
 }
 
 .plage__resume {
@@ -1524,75 +1670,11 @@ body.feuille-ouverte .app {
   font-variant-numeric: tabular-nums;
 }
 
-.tambour {
-  position: relative;
-  width: 3.5rem;
-  /* Sept crans de haut : assez pour voir où l'on va, assez peu pour que les
-     extrêmes soient franchement inclinés. */
-  height: calc(7 * var(--tambour-cran));
-  perspective: 900px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  cursor: grab;
-  /* Les crans s'effacent vers les bords au lieu d'être coupés net : un
-     cylindre n'a pas d'arête. */
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 26%,
-    #000 74%,
-    transparent
-  );
-  mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 74%, transparent);
+.plage__erreur {
+  font-size: var(--taille-appoint);
+  color: var(--manque);
 }
 
-.tambour--large {
-  width: 6.5rem;
-}
-
-.tambour:active {
-  cursor: grabbing;
-}
-
-.tambour:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--rayon-s);
-}
-
-.tambour__cran {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: var(--tambour-cran);
-  margin-top: calc(var(--tambour-cran) / -2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--encre);
-  font: inherit;
-  font-size: var(--taille-corps);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  cursor: pointer;
-  backface-visibility: hidden;
-  will-change: transform, opacity;
-}
-
-/* Un dégradé de masque est une transparence : sans lui, la lucarne a besoin
-   d'un filet pour rester lisible. */
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .tambour {
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .plage__tambours::before {
-    box-shadow: inset 0 0 0 1px var(--accent-trait);
-  }
+.champ--fautif {
+  box-shadow: inset 0 0 0 1px var(--manque-trait);
 }

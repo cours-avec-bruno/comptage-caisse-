@@ -10,14 +10,6 @@
  * exactement les choses qui se cassent en silence.
  */
 
-/** Fenêtres proposées. `jours` à `null` : depuis la première journée validée. */
-export const PERIODES = [
-  { cle: '7j', libelle: '7 jours', jours: 7 },
-  { cle: '30j', libelle: '30 jours', jours: 30 },
-  { cle: '90j', libelle: '3 mois', jours: 90 },
-  { cle: 'tout', libelle: 'Tout', jours: null },
-];
-
 /**
  * Décale une date « AAAA-MM-JJ ». En UTC : un décalage local traverserait mal
  * les changements d'heure, et l'application ne travaille qu'en dates civiles.

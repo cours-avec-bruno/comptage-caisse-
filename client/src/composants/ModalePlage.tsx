@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { nombreDeJours } from 'caisse-partage';
+import { Calendrier } from './Calendrier';
 import { Modale } from './Modale';
-import { Tambour, type Cran } from './Tambour';
-import { MOIS, dateCourte } from '../format';
+import { dateCourte, dateLongue } from '../format';
 
 interface Props {
   debut: string;
   fin: string;
-  /** Première journée qu'il vaut la peine de proposer, en général la plus ancienne validée. */
+  /** Première journée qu'il vaut la peine de proposer : la plus ancienne validée. */
   min: string;
   /** Dernier jour proposable : toujours aujourd'hui. */
   max: string;
@@ -16,113 +16,91 @@ interface Props {
   onValider: (debut: string, fin: string) => void;
 }
 
-const decouper = (iso: string) => iso.split('-').map(Number) as [number, number, number];
+type Etape = 'debut' | 'fin';
 
-const assembler = (annee: number, mois: number, jour: number) =>
-  `${annee}-${String(mois).padStart(2, '0')}-${String(jour).padStart(2, '0')}`;
+/** « 13/07/2026 » -> « 2026-07-13 », et rien du tout si la saisie ne tient pas debout. */
+function dateDepuisSaisie(saisie: string): string | null {
+  const propre = saisie.trim().replace(/[.\-\s]/g, '/');
+  const correspondance = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(propre);
+  if (!correspondance) return null;
 
-/** Longueur d'un mois, bissextiles comprises. */
-const joursDuMois = (annee: number, mois: number) =>
-  new Date(Date.UTC(annee, mois, 0)).getUTCDate();
-
-const borner = (valeur: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, valeur));
-
-const suite = (de: number, a: number, libelle: (valeur: number) => string): Cran[] => {
-  const crans: Cran[] = [];
-  for (let valeur = de; valeur <= a; valeur += 1) crans.push({ valeur, libelle: libelle(valeur) });
-  return crans;
-};
-
-/** Les bornes de chaque colonne, une fois les colonnes de gauche fixées. */
-function limites(annee: number, mois: number, min: string, max: string) {
-  const [anneeMin, moisMin, jourMin] = decouper(min);
-  const [anneeMax, moisMax, jourMax] = decouper(max);
-
-  const moisBas = annee === anneeMin ? moisMin : 1;
-  const moisHaut = annee === anneeMax ? moisMax : 12;
-  const moisCale = borner(mois, moisBas, moisHaut);
-
-  return {
-    anneeMin,
-    anneeMax,
-    moisBas,
-    moisHaut,
-    moisCale,
-    jourBas: annee === anneeMin && moisCale === moisMin ? jourMin : 1,
-    jourHaut:
-      annee === anneeMax && moisCale === moisMax ? jourMax : joursDuMois(annee, moisCale),
-  };
+  const [, jour = '', mois = '', annee = ''] = correspondance;
+  const iso = `${annee}-${mois.padStart(2, '0')}-${jour.padStart(2, '0')}`;
+  // Le 31 février se réécrirait tout seul en 3 mars : on refuse plutôt que de
+  // décaler en silence une date que l'agent croit avoir tapée.
+  const point = new Date(Date.UTC(Number(annee), Number(mois) - 1, Number(jour)));
+  return point.toISOString().slice(0, 10) === iso ? iso : null;
 }
 
 /**
- * Ramène une date dans les bornes en calant colonne par colonne, de la plus
- * large à la plus fine. Changer d'année ne doit jamais produire un 31 février
- * ni une date hors de l'historique : c'est ici que ça se rattrape.
- */
-function caler(annee: number, mois: number, jour: number, min: string, max: string): string {
-  const anneeCale = borner(annee, decouper(min)[0], decouper(max)[0]);
-  const bornes = limites(anneeCale, mois, min, max);
-  return assembler(
-    anneeCale,
-    bornes.moisCale,
-    borner(jour, bornes.jourBas, bornes.jourHaut),
-  );
-}
-
-interface PropsDate {
-  titre: string;
-  valeur: string;
-  min: string;
-  max: string;
-  onChange: (valeur: string) => void;
-}
-
-/** Trois tambours pour une date : le jour, le mois, l'année. */
-function ChoixDate({ titre, valeur, min, max, onChange }: PropsDate) {
-  const [annee, mois, jour] = decouper(valeur);
-  const bornes = limites(annee, mois, min, max);
-
-  return (
-    <section className="plage__date">
-      <span className="etiquette">{titre}</span>
-
-      <div className="plage__tambours">
-        <Tambour
-          etiquette={`Jour, ${titre.toLowerCase()}`}
-          crans={suite(bornes.jourBas, bornes.jourHaut, String)}
-          valeur={jour}
-          onChange={(choix) => onChange(caler(annee, mois, choix, min, max))}
-        />
-        <Tambour
-          large
-          etiquette={`Mois, ${titre.toLowerCase()}`}
-          crans={suite(bornes.moisBas, bornes.moisHaut, (m) => MOIS[m - 1] ?? String(m))}
-          valeur={bornes.moisCale}
-          onChange={(choix) => onChange(caler(annee, choix, jour, min, max))}
-        />
-        <Tambour
-          etiquette={`Année, ${titre.toLowerCase()}`}
-          crans={suite(bornes.anneeMin, bornes.anneeMax, String)}
-          valeur={annee}
-          onChange={(choix) => onChange(caler(choix, mois, jour, min, max))}
-        />
-      </div>
-    </section>
-  );
-}
-
-/**
- * Choisir la plage des statistiques à la main.
+ * Choisir la plage des statistiques, en deux temps : le début, puis la fin.
  *
- * Deux dates, six tambours. Les bornes s'emboîtent : le début ne peut pas
- * dépasser la fin, la fin ne peut pas descendre sous le début ni aller
- * au-delà d'aujourd'hui. Aucune combinaison impossible n'est atteignable,
- * donc aucun message d'erreur à lire — le tambour s'arrête, c'est tout.
+ * Une seule question à la fois. L'étape franchie reste affichée et se reprend
+ * d'un clic, donc on se corrige sans tout recommencer ; et pendant le choix de
+ * la fin, les jours déjà compris sont teintés : on voit la période se former
+ * au lieu de l'imaginer.
+ *
+ * Le champ de saisie double le calendrier pour qui connaît sa date : la taper
+ * est plus court que de remonter huit mois à la flèche.
  */
 export function ModalePlage({ debut, fin, min, max, origine, onFermer, onValider }: Props) {
-  const [choix, setChoix] = useState({ debut, fin });
-  const jours = nombreDeJours(choix.debut, choix.fin);
+  const [etape, setEtape] = useState<Etape>('debut');
+  const [choixDebut, setChoixDebut] = useState<string | null>(debut);
+  const [choixFin, setChoixFin] = useState<string | null>(fin);
+  const [saisie, setSaisie] = useState('');
+  const [saisieFautive, setSaisieFautive] = useState(false);
+
+  const surDebut = etape === 'debut';
+  const valeur = surDebut ? choixDebut : choixFin;
+  const borneBasse = surDebut ? min : (choixDebut ?? min);
+
+  const changerEtape = (suivante: Etape) => {
+    setEtape(suivante);
+    setSaisie('');
+    setSaisieFautive(false);
+  };
+
+  const choisir = (date: string) => {
+    if (surDebut) {
+      setChoixDebut(date);
+      // Une fin antérieure au nouveau début ne veut plus rien dire : on la
+      // repose plutôt que de la traîner, et l'étape suivante la redemande.
+      if (choixFin && choixFin < date) setChoixFin(null);
+      changerEtape('fin');
+      return;
+    }
+    setChoixFin(date);
+    setSaisie('');
+    setSaisieFautive(false);
+  };
+
+  const validerLaSaisie = () => {
+    if (saisie.trim() === '') return;
+    const date = dateDepuisSaisie(saisie);
+    if (!date || date < borneBasse || date > max) {
+      setSaisieFautive(true);
+      return;
+    }
+    setSaisieFautive(false);
+    choisir(date);
+  };
+
+  const complet = choixDebut !== null && choixFin !== null;
+  const jours = complet ? nombreDeJours(choixDebut, choixFin) : 0;
+
+  const jeton = (cible: Etape, titre: string, date: string | null) => (
+    <button
+      type="button"
+      className={`etape${etape === cible ? ' etape--active' : ''}`}
+      aria-current={etape === cible}
+      disabled={cible === 'fin' && choixDebut === null}
+      onClick={() => changerEtape(cible)}
+    >
+      <span className="etape__rang">{cible === 'debut' ? '1' : '2'}</span>
+      <span className="etape__nom">{titre}</span>
+      <span className="etape__date">{date ? dateCourte(date) : 'à choisir'}</span>
+    </button>
+  );
 
   return (
     <Modale
@@ -131,13 +109,18 @@ export function ModalePlage({ debut, fin, min, max, origine, onFermer, onValider
       onFermer={onFermer}
       pied={
         <>
+          {/* Les deux jetons affichent déjà les dates : les répéter ici ne
+              servirait qu'à faire déborder le pied sur un écran étroit. */}
           <span className="feuille__total">
-            <strong>
-              {jours} jour{jours > 1 ? 's' : ''}
-            </strong>{' '}
-            <span className="plage__resume">
-              du {dateCourte(choix.debut)} au {dateCourte(choix.fin)}
-            </span>
+            {complet ? (
+              <strong>
+                {jours} jour{jours > 1 ? 's' : ''}
+              </strong>
+            ) : (
+              <span className="plage__resume">
+                {surDebut ? 'Choisissez le premier jour' : 'Choisissez le dernier jour'}
+              </span>
+            )}
           </span>
           <div className="feuille__actions">
             <button type="button" className="bouton" onClick={onFermer}>
@@ -146,7 +129,8 @@ export function ModalePlage({ debut, fin, min, max, origine, onFermer, onValider
             <button
               type="button"
               className="bouton bouton--principal"
-              onClick={() => onValider(choix.debut, choix.fin)}
+              disabled={!complet}
+              onClick={() => complet && onValider(choixDebut, choixFin)}
             >
               Afficher
             </button>
@@ -155,20 +139,55 @@ export function ModalePlage({ debut, fin, min, max, origine, onFermer, onValider
       }
     >
       <div className="plage">
-        <ChoixDate
-          titre="Début"
-          valeur={choix.debut}
-          min={min}
-          max={choix.fin}
-          onChange={(valeur) => setChoix((actuel) => ({ ...actuel, debut: valeur }))}
-        />
-        <ChoixDate
-          titre="Fin"
-          valeur={choix.fin}
-          min={choix.debut}
+        <div className="etapes" role="group" aria-label="Étapes">
+          {jeton('debut', 'Début', choixDebut)}
+          {jeton('fin', 'Fin', choixFin)}
+        </div>
+
+        <Calendrier
+          valeur={valeur}
+          min={borneBasse}
           max={max}
-          onChange={(valeur) => setChoix((actuel) => ({ ...actuel, fin: valeur }))}
+          etiquette={surDebut ? 'Premier jour de la période' : 'Dernier jour de la période'}
+          plage={
+            !surDebut && choixDebut && choixFin
+              ? { debut: choixDebut, fin: choixFin }
+              : null
+          }
+          onChange={choisir}
         />
+
+        <div className="plage__saisie">
+          <label className="etiquette" htmlFor="plage-saisie">
+            {surDebut ? 'Début' : 'Fin'} (jj/mm/aaaa)
+          </label>
+          <input
+            id="plage-saisie"
+            className={`champ${saisieFautive ? ' champ--fautif' : ''}`}
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder={dateCourte(valeur ?? max)}
+            value={saisie}
+            aria-invalid={saisieFautive}
+            aria-describedby={saisieFautive ? 'plage-saisie-erreur' : undefined}
+            onChange={(evenement) => {
+              setSaisie(evenement.target.value);
+              setSaisieFautive(false);
+            }}
+            onBlur={validerLaSaisie}
+            onKeyDown={(evenement) => {
+              if (evenement.key !== 'Enter') return;
+              evenement.preventDefault();
+              validerLaSaisie();
+            }}
+          />
+          {saisieFautive && (
+            <p className="plage__erreur" id="plage-saisie-erreur">
+              Tapez une date entre le {dateLongue(borneBasse)} et le {dateLongue(max)}.
+            </p>
+          )}
+        </div>
       </div>
     </Modale>
   );
