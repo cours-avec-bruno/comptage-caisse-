@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Ressort,
   Velocimetre,
@@ -90,7 +90,12 @@ export function Tambour({ crans, valeur, onChange, etiquette, large = false }: P
      tambour de ne plus être au bon cran. */
   const valeurPosee = useRef(valeur);
 
-  useEffect(() => {
+  /* Avant la peinture, pas après. Le rendu qui apporte la nouvelle liste de
+     crans porte encore l'ancien rang : cette image-là montre le tambour
+     décalé d'un cran, voire vide quand la liste s'est beaucoup raccourcie.
+     Un `useEffect` la laisserait s'afficher le temps d'une image — c'est
+     précisément le sursaut qu'on voit sur les mois. */
+  useLayoutEffect(() => {
     if (geste.current) return;
     const memeValeur = valeurPosee.current === valeur;
     valeurPosee.current = valeur;
