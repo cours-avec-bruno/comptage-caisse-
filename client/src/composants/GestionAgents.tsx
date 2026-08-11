@@ -209,8 +209,10 @@ export function GestionAgents({ agentConnecte }: Props) {
                     type="password"
                     autoComplete="current-password"
                     autoFocus
+                    // Le champ ne porte plus rien de visible : le panneau
+                    // rouge et le bouton qui le suit disent où l'on est.
+                    // L'étiquette reste pour qui ne voit pas cet entourage.
                     aria-label={`Votre mot de passe, pour confirmer la suppression de ${agent.prenom} ${agent.nom}`}
-                    placeholder="Votre mot de passe, pas le sien"
                     value={mdpSuppression}
                     onChange={(evenement) => setMdpSuppression(evenement.target.value)}
                     onKeyDown={(evenement) => {
