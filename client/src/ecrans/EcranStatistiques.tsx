@@ -18,11 +18,10 @@ interface Props {
 /** Longueur minimale d'une plage : en deçà, la comparaison ne dit rien. */
 const MINIMUM_JOURS = 3;
 
-/** Les quatre périodes d'un clic. Au-delà, on personnalise. */
+/** Les périodes d'un clic. Au-delà, on personnalise. */
 const RACCOURCIS = [
   { cle: '7j', libelle: '7 jours', jours: 7 },
   { cle: '30j', libelle: '30 jours', jours: 30 },
-  { cle: '90j', libelle: '3 mois', jours: 90 },
   { cle: 'tout', libelle: 'Tout', jours: null },
 ] as const;
 
@@ -126,7 +125,7 @@ export function EcranStatistiques({ journal, date }: Props) {
           ))}
 
           {/* Une fois la plage choisie, le bouton la porte : sans ça, rien ne
-              dirait laquelle est affichée sans rouvrir les tambours. L'année
+              dirait laquelle est affichée sans rouvrir le calendrier. L'année
               ne s'écrit que si la plage en change — sinon elle prend la place
               des jours pour ne rien apprendre. */}
           <button

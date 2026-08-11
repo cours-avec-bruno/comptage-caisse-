@@ -47,16 +47,6 @@ export declare function repartirCoffre(
 
 /* --- Statistiques -------------------------------------------------------- */
 
-export interface Periode {
-  cle: string;
-  libelle: string;
-  /** `null` : depuis la première journée validée. */
-  jours: number | null;
-}
-
-/** Quatre fenêtres, dans cet ordre : 7 jours, 30 jours, 3 mois, tout. */
-export declare const PERIODES: readonly [Periode, Periode, Periode, Periode];
-
 export declare function decalerJours(date: string, jours: number): string;
 export declare function nombreDeJours(debut: string, fin: string): number;
 export declare function lundiDe(date: string): string;
