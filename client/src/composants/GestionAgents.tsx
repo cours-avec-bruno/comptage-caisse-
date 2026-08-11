@@ -7,7 +7,13 @@ interface Props {
 }
 
 /**
- * Ajout d'agents, désactivation, et changement de son propre mot de passe.
+ * Ajout d'agents, désactivation, suppression, et changement de son propre mot
+ * de passe.
+ *
+ * Supprimer se confirme par le mot de passe de la session qui le demande, pas
+ * par celui de l'agent visé : le poste reste ouvert entre deux passages, et
+ * ce mot de passe est la seule chose qui distingue « c'est bien moi qui le
+ * décide » de « quelqu'un est passé derrière le comptoir ».
  *
  * Personne ne peut toucher au mot de passe d'un autre — pas même le remettre
  * au prénom : un mot de passe qu'un collègue peut remettre à une valeur qu'il
@@ -19,6 +25,8 @@ export function GestionAgents({ agentConnecte }: Props) {
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [ouvert, setOuvert] = useState<number | null>(null);
+  const [aSupprimer, setASupprimer] = useState<Agent | null>(null);
+  const [mdpSuppression, setMdpSuppression] = useState('');
   const [ancien, setAncien] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -82,6 +90,25 @@ export function GestionAgents({ agentConnecte }: Props) {
       fermerPanneau();
     });
 
+  const fermerSuppression = () => {
+    setASupprimer(null);
+    setMdpSuppression('');
+  };
+
+  const supprimer = () => {
+    const cible = aSupprimer;
+    if (!cible) return;
+    return agir(async () => {
+      await api.supprimerAgent(cible.id, mdpSuppression);
+      // « Le compte de X » plutôt que « X est supprimé » : on ne connaît pas
+      // le genre des agents, et l'accord se poserait à chaque fois.
+      setMessage(
+        `Le compte de ${cible.prenom} ${cible.nom} est supprimé. Les lignes signées ${cible.initiales} restent au journal.`,
+      );
+      fermerSuppression();
+    });
+  };
+
   const basculerActif = (agent: Agent) =>
     agir(async () => {
       await api.modifierAgent(agent.id, { actif: !agent.actif });
@@ -137,16 +164,87 @@ export function GestionAgents({ agentConnecte }: Props) {
                 </button>
               )}
               {agent.id !== agentConnecte.id && (
-                <button
-                  type="button"
-                  className={`bouton bouton--discret${agent.actif ? ' bouton--danger' : ''}`}
-                  disabled={enCours}
-                  onClick={() => basculerActif(agent)}
-                >
-                  {agent.actif ? 'Désactiver' : 'Réactiver'}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={`bouton bouton--discret${agent.actif ? ' bouton--danger' : ''}`}
+                    disabled={enCours}
+                    onClick={() => basculerActif(agent)}
+                  >
+                    {agent.actif ? 'Désactiver' : 'Réactiver'}
+                  </button>
+                  <button
+                    type="button"
+                    className="bouton bouton--discret bouton--danger"
+                    disabled={enCours}
+                    onClick={() => {
+                      setMessage(null);
+                      setErreur(null);
+                      if (aSupprimer?.id === agent.id) {
+                        fermerSuppression();
+                      } else {
+                        setASupprimer(agent);
+                        setMdpSuppression('');
+                      }
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                </>
               )}
             </div>
+
+            {aSupprimer?.id === agent.id && (
+              <div className="agents__suppression">
+                <p className="agents__avertissement">
+                  <strong>
+                    Supprimer {agent.prenom} {agent.nom} ({agent.initiales}) ?
+                  </strong>{' '}
+                  C'est définitif : le compte disparaît et ne se récupère pas.
+                  Les comptages et les mouvements du coffre signés{' '}
+                  {agent.initiales} restent au journal, et ces initiales ne
+                  seront jamais redonnées à quelqu'un d'autre.
+                </p>
+
+                <label className="etiquette" htmlFor={`mdp-suppression-${agent.id}`}>
+                  Votre mot de passe, {agentConnecte.prenom}
+                </label>
+                <div className="agents__suppression-saisie">
+                  <input
+                    id={`mdp-suppression-${agent.id}`}
+                    className="champ"
+                    type="password"
+                    autoComplete="current-password"
+                    autoFocus
+                    placeholder="Le vôtre, pas le sien"
+                    value={mdpSuppression}
+                    onChange={(evenement) => setMdpSuppression(evenement.target.value)}
+                    onKeyDown={(evenement) => {
+                      if (evenement.key === 'Enter' && mdpSuppression.length > 0) {
+                        evenement.preventDefault();
+                        void supprimer();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="bouton"
+                    disabled={enCours}
+                    onClick={fermerSuppression}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    className="bouton bouton--danger-plein"
+                    disabled={enCours || mdpSuppression.length === 0}
+                    onClick={supprimer}
+                  >
+                    Supprimer définitivement
+                  </button>
+                </div>
+              </div>
+            )}
 
             {ouvert === agent.id && (
               <div className="agents__mdp">

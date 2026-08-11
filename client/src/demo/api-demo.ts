@@ -181,6 +181,34 @@ export const apiDemo: ClientApi = {
     return repondre({ agent: publier(agent) });
   },
 
+  supprimerAgent: (id, motDePasse) => {
+    const connecte = exigerSession();
+    const agent = magasin.agents.find((a) => a.id === id);
+    if (!agent) return Promise.reject(new ErreurApi('Agent introuvable.'));
+
+    if (id === connecte.id) {
+      return Promise.reject(
+        new ErreurApi(
+          'Vous ne pouvez pas supprimer votre propre compte. Demandez à un collègue de le faire depuis sa session.',
+        ),
+      );
+    }
+    if (motDePasse !== connecte.motDePasse) {
+      return Promise.reject(new ErreurApi('Mot de passe incorrect. Rien n’a été supprimé.'));
+    }
+    if (agent.actif && magasin.agents.filter((a) => a.actif && a.id !== id).length === 0) {
+      return Promise.reject(
+        new ErreurApi(
+          'Impossible de supprimer le dernier agent actif : plus personne ne pourrait se connecter.',
+        ),
+      );
+    }
+
+    const retire = magasin.retirerAgent(id);
+    if (!retire) return Promise.reject(new ErreurApi('Agent introuvable.'));
+    return repondre({ agent: publier(retire) });
+  },
+
   changerMotDePasse: (id, ancien, nouveau, confirmation) => {
     const connecte = exigerSession();
     if (id !== connecte.id) {

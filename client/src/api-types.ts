@@ -153,6 +153,12 @@ export interface ClientApi {
     modifications: { prenom?: string; nom?: string; actif?: boolean },
   ): Promise<{ agent: Agent }>;
   /**
+   * Suppression définitive, confirmée par le mot de passe de la session qui
+   * la demande — pas celui de l'agent supprimé. Les comptages et les
+   * mouvements restent : ils portent des initiales, pas une clé étrangère.
+   */
+  supprimerAgent(id: number, motDePasse: string): Promise<{ agent: Agent }>;
+  /**
    * Son propre mot de passe, et uniquement le sien : l'ancien est exigé et le
    * nouveau se tape deux fois.
    */

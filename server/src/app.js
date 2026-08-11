@@ -23,6 +23,7 @@ import {
   creerAgent,
   listerAgents,
   modifierAgent,
+  supprimerAgent,
 } from './domaine/agents.js';
 import {
   agentDeSession,
@@ -152,6 +153,26 @@ export function creerApp(options) {
 
   api.put('/agents/:id', (req, res) => {
     res.json({ agent: modifierAgent(db, Number(req.params.id), req.body ?? {}) });
+  });
+
+  /**
+   * Suppression définitive, confirmée par le mot de passe de la session qui
+   * la demande — pas celui de l'agent supprimé.
+   *
+   * Le poste reste ouvert entre deux passages : sans cette confirmation,
+   * effacer un collègue ne coûterait qu'un clic à qui passe derrière le
+   * comptoir. Les comptages et les mouvements, eux, ne bougent pas : ils
+   * portent des initiales, pas une clé étrangère.
+   */
+  api.delete('/agents/:id', (req, res) => {
+    const corps = req.body ?? {};
+    const supprime = supprimerAgent(
+      db,
+      Number(req.params.id),
+      req.agent.id,
+      corps.mot_de_passe,
+    );
+    res.json({ agent: supprime });
   });
 
   /**

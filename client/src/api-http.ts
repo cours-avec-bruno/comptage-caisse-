@@ -66,6 +66,12 @@ export const apiHttp: ClientApi = {
       body: JSON.stringify(modifications),
     }),
 
+  supprimerAgent: (id, motDePasse) =>
+    appeler<{ agent: Agent }>(`/agents/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ mot_de_passe: motDePasse }),
+    }),
+
   changerMotDePasse: async (id, ancien, nouveau, confirmation) => {
     await appeler<void>(`/agents/${id}/mot-de-passe`, {
       method: 'PUT',
