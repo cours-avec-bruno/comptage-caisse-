@@ -111,7 +111,7 @@ export class MagasinDemo {
 
     if (!prise(base)) return base;
     for (let suffixe = 2; suffixe < 100; suffixe += 1) {
-      const candidat = `${base}${suffixe}`;
+      const candidat = `${base}(${suffixe})`;
       if (!prise(candidat)) return candidat;
     }
     return base;

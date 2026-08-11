@@ -124,7 +124,11 @@ export function agentParId(db, id) {
 }
 
 /**
- * Choisit des initiales libres : « BR », puis « BR2 », « BR3 »…
+ * Choisit des initiales libres : « BR », puis « BR(2) », « BR(3) »…
+ *
+ * La parenthèse plutôt qu'un chiffre collé : « BR2 » se lit comme des
+ * initiales à trois lettres et se tape de travers à la connexion, « BR(2) »
+ * se lit comme « le deuxième BR ».
  *
  * Libres veut dire jamais utilisées, pas seulement inutilisées aujourd'hui.
  * Les initiales d'un agent supprimé ne reviennent pas dans le tirage : elles
@@ -141,7 +145,7 @@ function initialesLibres(db, base) {
 
   if (!prise(base)) return base;
   for (let suffixe = 2; suffixe < 100; suffixe += 1) {
-    const candidat = `${base}${suffixe}`;
+    const candidat = `${base}(${suffixe})`;
     if (!prise(candidat)) return candidat;
   }
   throw new ErreurValidation(`Impossible de trouver des initiales libres pour ${base}.`);

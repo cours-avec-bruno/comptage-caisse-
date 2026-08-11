@@ -128,9 +128,19 @@ describe('initiales', () => {
     assert.equal(initialesDe('Élodie', 'Ötz'), 'EO');
   });
 
-  it('évitent la collision par un suffixe', () => {
-    const agent = creerAgent(db, { prenom: 'Bernard', nom: 'Roux' }); // BR déjà pris
-    assert.equal(agent.initiales, 'BR2');
+  it('évitent la collision en comptant les homonymes entre parenthèses', () => {
+    const bernard = creerAgent(db, { prenom: 'Bernard', nom: 'Roux' }); // BR déjà pris
+    assert.equal(bernard.initiales, 'BR(2)');
+
+    const beatrice = creerAgent(db, { prenom: 'Béatrice', nom: 'Renaud' });
+    assert.equal(beatrice.initiales, 'BR(3)');
+  });
+
+  it('acceptent la connexion avec des initiales entre parenthèses', () => {
+    creerAgent(db, { prenom: 'Bernard', nom: 'Roux' });
+    assert.ok(authentifier(db, 'BR(2)', 'BERNARD'), 'Bernard doit pouvoir se connecter');
+    // Les initiales se tapent sans se soucier de la casse, parenthèse comprise.
+    assert.ok(authentifier(db, 'br(2)', 'BERNARD'));
   });
 });
 
@@ -443,7 +453,11 @@ describe('suppression définitive d’un agent', () => {
     // portées par des mouvements passés. Elle en reçoit d'autres.
     const nouvelle = creerAgent(db, { prenom: 'Marie', nom: 'Lefevre' });
     assert.notEqual(nouvelle.initiales, 'ML');
-    assert.equal(nouvelle.initiales, 'ML2');
+    assert.equal(nouvelle.initiales, 'ML(2)');
+
+    // Et la suivante, « ML(3) » : la parenthèse compte les homonymes.
+    const encore = creerAgent(db, { prenom: 'Mathieu', nom: 'Lambert' });
+    assert.equal(encore.initiales, 'ML(3)');
   });
 
   it('laisse l’historique intact : il porte des initiales, pas une clé', async () => {
