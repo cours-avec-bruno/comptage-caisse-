@@ -84,6 +84,11 @@ export function EcranStatistiques({ journal, date }: Props) {
   // Remonter avant la première journée validée n'aurait rien à montrer.
   const plusAncienne = decalerJours(date, -(maximumJours - 1));
 
+  /* Une plage d'un seul jour n'est pas une petite période : c'est une journée.
+     Une moyenne, une meilleure journée et un histogramme à une barre y
+     répéteraient trois fois le chiffre déjà écrit en gros. */
+  const journeeSeule = stat.debut === stat.fin;
+
   const montants = {
     especes: stat.totaux.especes_centimes,
     cb: stat.totaux.cb_centimes,
@@ -133,9 +138,11 @@ export function EcranStatistiques({ journal, date }: Props) {
             className="bouton bouton--onglet"
             aria-pressed={choix.mode === 'plage'}
             aria-label={
-              choix.mode === 'plage'
-                ? `Période personnalisée, du ${dateCourte(choix.debut)} au ${dateCourte(choix.fin)}. Modifier.`
-                : undefined
+              choix.mode !== 'plage'
+                ? undefined
+                : choix.debut === choix.fin
+                  ? `Journée du ${dateLongue(choix.debut)}. Modifier.`
+                  : `Période personnalisée, du ${dateCourte(choix.debut)} au ${dateCourte(choix.fin)}. Modifier.`
             }
             onClick={(evenement) =>
               setOriginePlage({ x: evenement.clientX, y: evenement.clientY })
@@ -143,9 +150,11 @@ export function EcranStatistiques({ journal, date }: Props) {
           >
             {choix.mode !== 'plage'
               ? 'Personnaliser'
-              : choix.debut.slice(0, 4) === choix.fin.slice(0, 4)
-                ? `${dateBreve(choix.debut)} – ${dateBreve(choix.fin)}`
-                : `${dateCourte(choix.debut)} – ${dateCourte(choix.fin)}`}
+              : choix.debut === choix.fin
+                ? dateCourte(choix.debut)
+                : choix.debut.slice(0, 4) === choix.fin.slice(0, 4)
+                  ? `${dateBreve(choix.debut)} – ${dateBreve(choix.fin)}`
+                  : `${dateCourte(choix.debut)} – ${dateCourte(choix.fin)}`}
           </button>
         </div>
       </div>
@@ -167,7 +176,11 @@ export function EcranStatistiques({ journal, date }: Props) {
 
       {stat.journees === 0 ? (
         <div className="carte stats__vide">
-          <p>Aucune journée validée sur cette période.</p>
+          <p>
+            {journeeSeule
+              ? `Aucun comptage validé le ${dateLongue(stat.debut)}.`
+              : 'Aucune journée validée sur cette période.'}
+          </p>
           <p className="panneau__note">
             Les statistiques se remplissent toutes seules à mesure que les journées
             sont validées.
@@ -178,7 +191,9 @@ export function EcranStatistiques({ journal, date }: Props) {
           <div className="stats">
             <section className="carte stats__vedette">
               <span className="etiquette">
-                Recette du {dateCourte(stat.debut)} au {dateCourte(stat.fin)}
+                {journeeSeule
+                  ? `Recette du ${dateLongue(stat.debut)}`
+                  : `Recette du ${dateCourte(stat.debut)} au ${dateCourte(stat.fin)}`}
               </span>
               <span className="stats__montant">
                 {formaterEuros(stat.totaux.recette_centimes)}
@@ -202,7 +217,9 @@ export function EcranStatistiques({ journal, date }: Props) {
                       {stat.evolution_pourcent > 0 ? '+' : ''}
                       {stat.evolution_pourcent} %
                     </span>{' '}
-                    par rapport aux {stat.etendue_jours} jours précédents
+                    {journeeSeule
+                      ? 'par rapport à la veille'
+                      : `par rapport aux ${stat.etendue_jours} jours précédents`}
                   </>
                 )}
               </p>
@@ -251,19 +268,39 @@ export function EcranStatistiques({ journal, date }: Props) {
             </section>
 
             <section className="carte stats__chiffres">
-              <div className="stats__chiffre">
-                <span className="etiquette">Moyenne par journée</span>
-                <strong>{formaterEuros(stat.moyenne_par_journee)}</strong>
-              </div>
-
-              {stat.meilleure && (
+              {journeeSeule ? (
+                // Sur une seule journée, la veille est la seule chose que la
+                // vedette ne dit pas déjà.
                 <div className="stats__chiffre">
-                  <span className="etiquette">Meilleure journée</span>
-                  <strong>{formaterEuros(stat.meilleure.recette_centimes)}</strong>
+                  <span className="etiquette">La veille</span>
+                  <strong>
+                    {stat.precedent
+                      ? formaterEuros(stat.precedent.recette_centimes)
+                      : '—'}
+                  </strong>
                   <span className="stats__appoint">
-                    {dateLongue(stat.meilleure.date)}
+                    {stat.precedent
+                      ? dateLongue(decalerJours(stat.debut, -1))
+                      : `Aucun comptage validé le ${dateLongue(decalerJours(stat.debut, -1))}`}
                   </span>
                 </div>
+              ) : (
+                <>
+                  <div className="stats__chiffre">
+                    <span className="etiquette">Moyenne par journée</span>
+                    <strong>{formaterEuros(stat.moyenne_par_journee)}</strong>
+                  </div>
+
+                  {stat.meilleure && (
+                    <div className="stats__chiffre">
+                      <span className="etiquette">Meilleure journée</span>
+                      <strong>{formaterEuros(stat.meilleure.recette_centimes)}</strong>
+                      <span className="stats__appoint">
+                        {dateLongue(stat.meilleure.date)}
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="stats__chiffre">
@@ -273,66 +310,68 @@ export function EcranStatistiques({ journal, date }: Props) {
             </section>
           </div>
 
-          <section className="carte stats__histogramme">
-            <header className="stats__entete">
-              <h2>{titreEvolution}</h2>
+          {stat.seaux.length > 1 && (
+            <section className="carte stats__histogramme">
+              <header className="stats__entete">
+                <h2>{titreEvolution}</h2>
 
-              {/* Sans repère, une barre ne dit que « plus » ou « moins ».
-                  Celui-ci suffit : la plus haute vaut ce montant. */}
-              <span className="stats__echelle">
-                Plus haute barre
-                <strong>{formaterEuros(maximum)}</strong>
-              </span>
-            </header>
+                {/* Sans repère, une barre ne dit que « plus » ou « moins ».
+                    Celui-ci suffit : la plus haute vaut ce montant. */}
+                <span className="stats__echelle">
+                  Plus haute barre
+                  <strong>{formaterEuros(maximum)}</strong>
+                </span>
+              </header>
 
-            <div
-              className="histogramme"
-              role="img"
-              aria-label={`Recette ${titreEvolution.toLowerCase()}, du ${dateCourte(stat.debut)} au ${dateCourte(stat.fin)}. Le détail chiffré est dans le journal.`}
-            >
-              {stat.seaux.map((seau, index) => {
-                const depuisLaFin = stat.seaux.length - 1 - index;
-                return (
-                  <div key={seau.cle} className="histogramme__colonne">
-                    <div className="histogramme__piste">
-                      <div
-                        className="histogramme__barre"
-                        style={{
-                          height: `${Math.max(2, (seau.recette_centimes * 100) / maximum)}%`,
-                        }}
-                        title={`${periodeDuSeau(seau, stat.granularite)}\n${formaterEuros(seau.recette_centimes)} au total\nEspèces ${formaterEuros(seau.especes_centimes)}\nCarte ${formaterEuros(seau.cb_centimes)}\nChèques ${formaterEuros(seau.cheques_centimes)}`}
-                      >
-                        {MOYENS.map(({ cle }) => {
-                          const valeur = Math.max(
-                            0,
-                            cle === 'especes'
-                              ? seau.especes_centimes
-                              : cle === 'cb'
-                                ? seau.cb_centimes
-                                : seau.cheques_centimes,
-                          );
-                          if (valeur === 0) return null;
-                          return (
-                            <span
-                              key={cle}
-                              className={`histogramme__part histogramme__part--${cle}`}
-                              style={{ flexGrow: valeur }}
-                            />
-                          );
-                        })}
+              <div
+                className="histogramme"
+                role="img"
+                aria-label={`Recette ${titreEvolution.toLowerCase()}, du ${dateCourte(stat.debut)} au ${dateCourte(stat.fin)}. Le détail chiffré est dans le journal.`}
+              >
+                {stat.seaux.map((seau, index) => {
+                  const depuisLaFin = stat.seaux.length - 1 - index;
+                  return (
+                    <div key={seau.cle} className="histogramme__colonne">
+                      <div className="histogramme__piste">
+                        <div
+                          className="histogramme__barre"
+                          style={{
+                            height: `${Math.max(2, (seau.recette_centimes * 100) / maximum)}%`,
+                          }}
+                          title={`${periodeDuSeau(seau, stat.granularite)}\n${formaterEuros(seau.recette_centimes)} au total\nEspèces ${formaterEuros(seau.especes_centimes)}\nCarte ${formaterEuros(seau.cb_centimes)}\nChèques ${formaterEuros(seau.cheques_centimes)}`}
+                        >
+                          {MOYENS.map(({ cle }) => {
+                            const valeur = Math.max(
+                              0,
+                              cle === 'especes'
+                                ? seau.especes_centimes
+                                : cle === 'cb'
+                                  ? seau.cb_centimes
+                                  : seau.cheques_centimes,
+                            );
+                            if (valeur === 0) return null;
+                            return (
+                              <span
+                                key={cle}
+                                className={`histogramme__part histogramme__part--${cle}`}
+                                style={{ flexGrow: valeur }}
+                              />
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
 
-                    <span className="histogramme__etiquette">
-                      {depuisLaFin % pasEtiquettes === 0
-                        ? etiquetteSeau(seau, stat.granularite)
-                        : ''}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+                      <span className="histogramme__etiquette">
+                        {depuisLaFin % pasEtiquettes === 0
+                          ? etiquetteSeau(seau, stat.granularite)
+                          : ''}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </>
       )}
     </>
