@@ -97,13 +97,33 @@ export class MagasinDemo {
     return prenom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
   }
 
+  /**
+   * Les initiales des agents supprimés. Elles signent des mouvements passés :
+   * les rendre à un nouveau venu ferait porter à ce dernier des versements
+   * qu'il n'a pas faits.
+   */
+  initialesRetirees = new Set<string>();
+
   initialesLibres(base: string): string {
-    if (!this.agents.some((a) => a.initiales === base)) return base;
+    const prise = (candidat: string) =>
+      this.initialesRetirees.has(candidat) ||
+      this.agents.some((a) => a.initiales === candidat);
+
+    if (!prise(base)) return base;
     for (let suffixe = 2; suffixe < 100; suffixe += 1) {
       const candidat = `${base}${suffixe}`;
-      if (!this.agents.some((a) => a.initiales === candidat)) return candidat;
+      if (!prise(candidat)) return candidat;
     }
     return base;
+  }
+
+  /** Retire un agent de la liste. L'historique, lui, garde ses initiales. */
+  retirerAgent(id: number): AgentDemo | null {
+    const index = this.agents.findIndex((a) => a.id === id);
+    if (index === -1) return null;
+    const [agent] = this.agents.splice(index, 1);
+    if (agent) this.initialesRetirees.add(agent.initiales);
+    return agent ?? null;
   }
 
   ajouterAgent(prenom: string, nom: string): AgentDemo {

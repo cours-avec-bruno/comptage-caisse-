@@ -164,6 +164,18 @@ textarea {
   background: var(--alerte-clair);
 }
 
+/* Plein : réservé à ce qui ne se rattrape pas. Le rouge discret ouvre la
+   question, celui-ci la tranche — et il ne doit jamais se confondre avec le
+   bouton principal, qui lui se rattrape toujours. */
+.bouton--danger-plein {
+  background: var(--alerte);
+  color: #fff;
+}
+
+.bouton--danger-plein:hover:not(:disabled) {
+  background: #b8503f;
+}
+
 /* Sans relief : pour ce qui accompagne, pas pour ce qui agit. */
 .bouton--discret {
   background: transparent;

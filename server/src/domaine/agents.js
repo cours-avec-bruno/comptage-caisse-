@@ -125,15 +125,24 @@ export function agentParId(db, id) {
 
 /**
  * Choisit des initiales libres : « BR », puis « BR2 », « BR3 »…
+ *
+ * Libres veut dire jamais utilisées, pas seulement inutilisées aujourd'hui.
+ * Les initiales d'un agent supprimé ne reviennent pas dans le tirage : elles
+ * signent des mouvements passés, et les rendre à quelqu'un d'autre ferait
+ * porter à ce dernier des versements qu'il n'a pas faits.
+ *
  * @param {import('better-sqlite3').Database} db
  * @param {string} base
  */
 function initialesLibres(db, base) {
-  const existe = db.prepare('SELECT 1 FROM agents WHERE initiales = ?');
-  if (!existe.get(base)) return base;
+  const priseParUnAgent = db.prepare('SELECT 1 FROM agents WHERE initiales = ?');
+  const retiree = db.prepare('SELECT 1 FROM initiales_retirees WHERE initiales = ?');
+  const prise = (candidat) => priseParUnAgent.get(candidat) || retiree.get(candidat);
+
+  if (!prise(base)) return base;
   for (let suffixe = 2; suffixe < 100; suffixe += 1) {
     const candidat = `${base}${suffixe}`;
-    if (!existe.get(candidat)) return candidat;
+    if (!prise(candidat)) return candidat;
   }
   throw new ErreurValidation(`Impossible de trouver des initiales libres pour ${base}.`);
 }
@@ -234,6 +243,66 @@ export function motDePasseCorrect(db, id, motDePasse) {
   const ligne = db.prepare('SELECT mdp_hash, mdp_sel FROM agents WHERE id = ?').get(id);
   if (!ligne) return false;
   return verifier(String(motDePasse ?? '').trim(), ligne.mdp_hash, ligne.mdp_sel);
+}
+
+/**
+ * Supprime un agent pour de bon, en confirmant par le mot de passe de la
+ * session qui le demande.
+ *
+ * La confirmation n'est pas celle de l'agent supprimé mais celle de l'agent
+ * connecté : c'est un poste partagé, laissé ouvert entre deux passages, et
+ * ce mot de passe est la seule chose qui distingue « c'est bien moi qui le
+ * décide » de « quelqu'un est passé derrière le comptoir ».
+ *
+ * Ce que la suppression n'efface pas : les comptages, les versements et les
+ * sorties. L'historique ne référence pas les agents par leur identifiant, il
+ * écrit leurs initiales, et rien ne réécrit ces lignes-là. Un agent
+ * disparaît de la liste, pas du journal — c'est la règle de la maison, et
+ * c'est aussi la seule lecture honnête d'une caisse.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {number} id l'agent à supprimer
+ * @param {number} auteurId l'agent connecté, qui confirme
+ * @param {string} motDePasse celui de l'agent connecté
+ */
+export function supprimerAgent(db, id, auteurId, motDePasse) {
+  const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(id);
+  if (!agent) throw new ErreurValidation('Agent introuvable.');
+
+  // Se supprimer soi-même reviendrait à scier la branche : la session en
+  // cours deviendrait celle d'un agent qui n'existe plus.
+  if (id === auteurId) {
+    throw new ErreurValidation(
+      'Vous ne pouvez pas supprimer votre propre compte. Demandez à un collègue de le faire depuis sa session.',
+    );
+  }
+
+  if (!motDePasseCorrect(db, auteurId, motDePasse)) {
+    throw new ErreurValidation('Mot de passe incorrect. Rien n’a été supprimé.');
+  }
+
+  if (agent.actif) {
+    const restants = db
+      .prepare('SELECT COUNT(*) AS n FROM agents WHERE actif = 1 AND id <> ?')
+      .get(id).n;
+    if (restants === 0) {
+      throw new ErreurValidation(
+        'Impossible de supprimer le dernier agent actif : plus personne ne pourrait se connecter.',
+      );
+    }
+  }
+
+  const supprimer = db.transaction(() => {
+    db.prepare(
+      `INSERT OR IGNORE INTO initiales_retirees (initiales, prenom, nom, retire_le)
+       VALUES (?, ?, ?, ?)`,
+    ).run(agent.initiales, agent.prenom, agent.nom, horodatage());
+    db.prepare('DELETE FROM sessions WHERE agent_id = ?').run(id);
+    db.prepare('DELETE FROM agents WHERE id = ?').run(id);
+  });
+  supprimer();
+
+  return { id, prenom: agent.prenom, nom: agent.nom, initiales: agent.initiales };
 }
 
 /**

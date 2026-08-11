@@ -14,6 +14,7 @@ import {
   listerAgents,
   modifierAgent,
   motDePasseParDefaut,
+  supprimerAgent,
   verifier,
 } from '../src/domaine/agents.js';
 import { ErreurValidation } from '../src/domaine/calculs.js';
@@ -364,5 +365,110 @@ describe('API des agents', () => {
       confirmation: 'ab',
     });
     assert.equal(statut, 400);
+  });
+});
+
+describe('suppression définitive d’un agent', () => {
+  /** Bruno est connecté ; Marie est la cible. */
+  const acteurs = () => ({
+    bruno: listerAgents(db).find((a) => a.initiales === 'BR'),
+    marie: listerAgents(db).find((a) => a.initiales === 'ML'),
+  });
+
+  it('exige le mot de passe de la session qui la demande', async () => {
+    const client = creerClient();
+    await client('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const { marie } = acteurs();
+
+    const sansRien = await client('DELETE', `/api/agents/${marie.id}`, {});
+    assert.equal(sansRien.statut, 400);
+    assert.match(sansRien.corps.erreur, /Mot de passe incorrect/);
+
+    // Celui de la cible ne vaut rien : c'est la session qui confirme.
+    const celuiDeMarie = await client('DELETE', `/api/agents/${marie.id}`, {
+      mot_de_passe: 'MARIE',
+    });
+    assert.equal(celuiDeMarie.statut, 400);
+    assert.ok(listerAgents(db).some((a) => a.initiales === 'ML'), 'Marie est toujours là');
+
+    const bon = await client('DELETE', `/api/agents/${marie.id}`, {
+      mot_de_passe: 'BRUNO',
+    });
+    assert.equal(bon.statut, 200);
+    assert.equal(bon.corps.agent.initiales, 'ML');
+    assert.ok(!listerAgents(db, { inclureInactifs: true }).some((a) => a.initiales === 'ML'));
+  });
+
+  it('refuse qu’on se supprime soi-même', () => {
+    const { bruno } = acteurs();
+    assert.throws(
+      () => supprimerAgent(db, bruno.id, bruno.id, 'BRUNO'),
+      (erreur) =>
+        erreur instanceof ErreurValidation && /votre propre compte/.test(erreur.message),
+    );
+    assert.ok(authentifier(db, 'BR', 'BRUNO'));
+  });
+
+  it('refuse de supprimer le dernier agent actif', () => {
+    const { bruno, marie } = acteurs();
+    // Bruno désactivé, Marie est la seule qui peut encore se connecter — et
+    // c'est elle qui demande, donc elle ne peut viser que Bruno.
+    modifierAgent(db, marie.id, { actif: false });
+    assert.throws(
+      () => supprimerAgent(db, bruno.id, marie.id, 'MARIE'),
+      (erreur) =>
+        erreur instanceof ErreurValidation && /dernier agent actif/.test(erreur.message),
+    );
+  });
+
+  it('ferme les sessions ouvertes de l’agent supprimé', async () => {
+    const posteDeMarie = creerClient();
+    await posteDeMarie('POST', '/api/connexion', { initiales: 'ML', mot_de_passe: 'MARIE' });
+    assert.equal((await posteDeMarie('GET', '/api/agents')).statut, 200);
+
+    const posteDeBruno = creerClient();
+    await posteDeBruno('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const { marie } = acteurs();
+    await posteDeBruno('DELETE', `/api/agents/${marie.id}`, { mot_de_passe: 'BRUNO' });
+
+    // Le poste de Marie ne doit pas rester ouvert sur un compte disparu.
+    assert.equal((await posteDeMarie('GET', '/api/agents')).statut, 401);
+  });
+
+  it('ne rend jamais les initiales d’un supprimé à un nouveau venu', () => {
+    const { bruno, marie } = acteurs();
+    supprimerAgent(db, marie.id, bruno.id, 'BRUNO');
+
+    // Une autre Marie Lefevre : ses initiales naturelles sont « ML », déjà
+    // portées par des mouvements passés. Elle en reçoit d'autres.
+    const nouvelle = creerAgent(db, { prenom: 'Marie', nom: 'Lefevre' });
+    assert.notEqual(nouvelle.initiales, 'ML');
+    assert.equal(nouvelle.initiales, 'ML2');
+  });
+
+  it('laisse l’historique intact : il porte des initiales, pas une clé', async () => {
+    // Marie valide une journée : le versement au coffre porte ses initiales.
+    const client = creerClient();
+    await client('POST', '/api/connexion', { initiales: 'ML', mot_de_passe: 'MARIE' });
+    await client('PUT', '/api/parametres', { fond_composition: { 2000: 1, 100: 5 } });
+    const { statut } = await client('POST', '/api/comptages', {
+      date: '2026-08-10',
+      detail: { 5000: 2, 2000: 3, 100: 12 },
+      cb_centimes: 0,
+    });
+    assert.equal(statut, 201);
+
+    const parBruno = creerClient();
+    await parBruno('POST', '/api/connexion', { initiales: 'BR', mot_de_passe: 'BRUNO' });
+    const { marie } = acteurs();
+    const suppression = await parBruno('DELETE', `/api/agents/${marie.id}`, {
+      mot_de_passe: 'BRUNO',
+    });
+    assert.equal(suppression.statut, 200);
+
+    const { corps } = await parBruno('GET', '/api/coffre/mouvements');
+    const versement = corps.mouvements.find((m) => m.date === '2026-08-10');
+    assert.ok(versement, 'le versement de Marie est toujours au journal');
+    assert.equal(versement.agent, 'ML');
   });
 });

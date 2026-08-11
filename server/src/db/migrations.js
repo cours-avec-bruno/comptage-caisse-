@@ -223,6 +223,26 @@ export const MIGRATIONS = [
         BEGIN SELECT RAISE(ABORT, 'Un mouvement de coffre ne se supprime pas'); END;
     `,
   },
+  {
+    nom: '007-initiales-retirees',
+    sql: `
+      -- L'historique ne connaît pas les agents par leur identifiant : il
+      -- écrit leurs initiales en toutes lettres, et ces lignes-là ne se
+      -- réécrivent jamais. Supprimer un agent ne les efface donc pas — mais
+      -- rendre ses initiales à la circulation ferait signer par quelqu'un
+      -- d'autre des mouvements qu'il n'a pas faits.
+      --
+      -- On garde donc trace des initiales retirées, avec le nom de qui les
+      -- portait : c'est ce qui permet encore de lire un versement de 2026
+      -- signé « BR » cinq ans plus tard.
+      CREATE TABLE initiales_retirees (
+        initiales TEXT PRIMARY KEY,
+        prenom    TEXT NOT NULL,
+        nom       TEXT NOT NULL,
+        retire_le TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 /**
