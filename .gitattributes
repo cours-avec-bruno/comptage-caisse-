@@ -1,0 +1,5 @@
+# Les scripts Windows gardent leurs fins de ligne CRLF : un .bat en LF
+# saute ses etiquettes, et l'icone est un binaire.
+*.bat text eol=crlf
+*.vbs text eol=crlf
+*.ico binary
